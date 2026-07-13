@@ -1,0 +1,23 @@
+---
+title: "Week 1 Tutorial: Introduction to R"
+author: "Dr. Jennifer Bigman"
+format: html
+---
+
+# tutorial week 1
+
+## Learning objectives
+
+By the end of this tutorial, you will be able to:
+  - use RStudio to interact with git and GitHub
+  - XXX
+
+
+## git, GitHub, RStudio
+
+### connect git to RStudio
+
+```{r}
+
+```
+
