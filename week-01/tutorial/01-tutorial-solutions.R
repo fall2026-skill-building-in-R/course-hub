@@ -1,4 +1,4 @@
-# 01-tutorial soluations
+# 01-tutorial solutions
 
 # your turn 1
 
