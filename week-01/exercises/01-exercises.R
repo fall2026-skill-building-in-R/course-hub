@@ -41,7 +41,7 @@
 
 	#### Part 2: Vectors and summary functions ####
 	
-	# The lengths, in centimeters, of eight fish were:
+	# The lengths, in centimeters, of eight fish are:
 	
 	fish_lengths <- c(24, 31, 28, 35, 42, 30, 37, 33)
 	
