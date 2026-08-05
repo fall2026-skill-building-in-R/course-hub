@@ -483,6 +483,80 @@ After tidying, one row represents the reported number of cases for one country, 
 
 The age codes can also be converted to readable labels, but we will leave that as an optional extension.
 
+## Part 5: Creating data frames in R
+
+Sometime, you will want to create a dataframe in R. This is not too common, as it is only for small datasets. Most data you will work with will be in a .csv or other file and imported into R. However, you should still know how to do this.
+
+There are a few useful functions to help you assemble a dataframe “by hand”. In base R (using no packages), you can use `data.frame()`. Tidyverse offers other options: `tibble()` and `tribble()`, short for transposed tibble. `tibble()` works by column and `tribble()` lets you lay out your data row by row.
+
+```{r}
+
+# create the same small dataset in three different ways
+
+# base R: enter data by column
+fish_base <- data.frame(
+  species = c("Atlantic cod", "Haddock", "Pollock"),
+  year = c(2021, 2021, 2021),
+  biomass_t = c(1200, 850, 975)
+)
+
+# tidyverse: enter data by column
+fish_tibble <- tibble(
+  species = c("Atlantic cod", "Haddock", "Pollock"),
+  year = c(2021, 2021, 2021),
+  biomass_t = c(1200, 850, 975)
+)
+
+# tidyverse: enter data row by row
+fish_tribble <- tribble(
+  ~species,        ~year, ~biomass_t,
+  "Atlantic cod",   2021,       1200,
+  "Haddock",        2021,        850,
+  "Pollock",        2021,        975
+)
+
+fish_base
+fish_tibble
+fish_tribble
+
+```
+
+
+How do these different ways compare? Let's use `str()`, which compactly displays the structre of an object. `glimpse()` is not as good for this because it doesn't tell us the class of the object (but it is usefull in other ways!).
+
+```{r}
+
+str(fish_base)
+str(fish_tibble)
+str(fish_tribble)
+```
+
+What do you notice?
+
+
+## Part 6: Exporting data frames {#sec-tb}
+
+Use `write_csv()` from the `{readr}` package to save a data frame as a CSV file. The first argument is the data frame to save, and the second is the file path and filename. Unlike base R’s `write.csv()`, `write_csv()` does not add row names as an extra column.
+
+```{r}
+# create a path for the output file
+output_file <- file.path(
+  data_file_path,
+  "lotr_tidy.csv"
+)
+
+# save the tidy data as a CSV file
+write_csv(
+  lotr_tidy,
+  output_file
+)
+
+# check that the file exists
+file.exists(output_file)
+
+```
+
+
 ## Recap {#sec-recap}
 
 ### Import and inspect
