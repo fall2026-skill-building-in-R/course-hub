@@ -46,7 +46,7 @@ Call it 'fall2026-skill-building-in-R/". This folder will house many GitHub repo
 The instructor controls this repository. It contains template files for the tutorials and exercises.
 
 ```text
-fall2026-skillbuildinginR/
+skill-building-in-R/
 └── course-hub/
     ├── course-hub.Rproj
     ├── README.md
@@ -56,7 +56,7 @@ fall2026-skillbuildinginR/
     └── week-02/
 ```
 
-A trailing `/` indicates that the item is a **folder**. In the above folder structure, fall2026-skillbuildinginR/, course-hub/, week-01/, and week-02/ are all folders, not files.
+A trailing `/` indicates that the item is a **folder**. In the above folder structure, skill-building-in-R/, course-hub/, week-01/, and week-02/ are all folders, not files.
 
 `course-hub.Rproj` is an Rproject file, something we will learn about next week.
 
@@ -88,7 +88,7 @@ tutorials-exercises
 Your repository might eventually look like this:
 
 ```text
-fall2026-skillbuildinginR/
+skill-building-in-R/
 └── tutorials-exercises/
     ├── README.md
     ├── week-01/
@@ -145,7 +145,7 @@ Create one parent folder on your computer for this course. Your repositories sho
 Recommended structure:
 
 ```text
-fall2026-skill-building-in-r/
+skill-building-in-R/
 ├── course-hub/
 ├── tutorials-exercises/
 ├── homeworks
@@ -165,7 +165,7 @@ course-hub/
 Correct:
 
 ```text
-fall2026-skill-building-in-r/
+skill-building-in-R/
 ├── course-hub/
 └── tutorials-exercises/
 ```
@@ -190,7 +190,7 @@ You only need to do this once on each computer you use.
 3. Select **Version Control**.
 4. Select **Git**.
 5. Paste the repository URL into **Repository URL**.
-6. Choose your `fall2026-skill-building-in-r\` parent folder as the project directory.
+6. Choose your `skill-building-in-R/` parent folder as the project directory.
 7. Click **Create Project**.
 
 RStudio will clone the repository and open the project. A course-hub folder will automatically be created through this process.
@@ -202,7 +202,7 @@ Confirm that:
 - `course-hub` appears as the project name in the upper-right corner of RStudio;
 - the Files pane shows the contents of `course-hub`;
 - the Git pane is visible; 
-- course-hub folder was created in `fall2026-skill-building-in-R\` folder; and
+- course-hub folder was created in `skill-building-in-R/` folder; and
 - you can locate the `week-01` folder.
 
 ---
@@ -273,13 +273,13 @@ Create this repository under your **personal GitHub account**, not inside `cours
 2. Select **Version Control**.
 3. Select **Git**.
 4. Paste the repository URL.
-5. Choose the same `fall2026-skill-building-in-r` parent folder used for `course-hub`.
+5. Choose the same `skill-building-in-R/` parent folder used for `course-hub`.
 6. Click **Create Project**.
 
 Your repositories should now be side by side:
 
 ```text
-fall2026-skill-building-in-r/
+skill-building-in-R/
 ├── course-hub/
 └── tutorials-exercises/
 ```
@@ -311,7 +311,7 @@ Before copying files, save your work and close any files you are not using.
 Your personal repository should now look similar to course-hub, which looks like this for week-01:
 
 ```text
-fall2026-skillbuildinginR/
+skill-building-in-R/
 └── tutorials-exercises/
     ├── README.md
     └── week-01/
