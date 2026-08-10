@@ -203,6 +203,19 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#practice-2-8" id="toc-practice-2-8" class="nav-link" data-scroll-target="#practice-2-8">Practice 2</a></li>
   </ul></li>
   </ul></li>
+  <li><a href="#introduction-to-advanced-wrangling" id="toc-introduction-to-advanced-wrangling" class="nav-link" data-scroll-target="#introduction-to-advanced-wrangling">Introduction to advanced wrangling</a>
+  <ul class="collapse">
+  <li><a href="#joins" id="toc-joins" class="nav-link" data-scroll-target="#joins">joins</a>
+  <ul class="collapse">
+  <li><a href="#primary-and-foreign-keys" id="toc-primary-and-foreign-keys" class="nav-link" data-scroll-target="#primary-and-foreign-keys">Primary and foreign keys</a></li>
+  </ul></li>
+  <li><a href="#strings" id="toc-strings" class="nav-link" data-scroll-target="#strings">Strings</a></li>
+  <li><a href="#dates-and-times" id="toc-dates-and-times" class="nav-link" data-scroll-target="#dates-and-times">Dates and Times</a>
+  <ul class="collapse">
+  <li><a href="#dates-versus-date-times" id="toc-dates-versus-date-times" class="nav-link" data-scroll-target="#dates-versus-date-times">Dates versus date-times</a></li>
+  <li><a href="#dates-are-often-imported-into-r-as-character-strings-rather-than-as-actual-dates." id="toc-dates-are-often-imported-into-r-as-character-strings-rather-than-as-actual-dates." class="nav-link" data-scroll-target="#dates-are-often-imported-into-r-as-character-strings-rather-than-as-actual-dates.">Dates are often imported into R as character strings rather than as actual dates.</a></li>
+  </ul></li>
+  </ul></li>
   <li><a href="#putting-it-all-together" id="toc-putting-it-all-together" class="nav-link" data-scroll-target="#putting-it-all-together">Putting it all together</a>
   <ul class="collapse">
   <li><a href="#final-practice" id="toc-final-practice" class="nav-link" data-scroll-target="#final-practice">Final practice</a></li>
@@ -254,6 +267,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>use <code>across()</code> to apply the same operation to multiple variables;</li>
 <li>use <code>count()</code> to quickly count observations by groups; and</li>
 <li>use <code>case_when()</code> to create variables from multiple logical conditions.</li>
+<li>understand the basics of joins (e.g., <code>left_join</code>), strings, working with dates and times, rounding, logarithms, regular expressions, and factors</li>
 </ul>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -272,10 +286,17 @@ Note
 </section>
 <section id="setup" class="level2">
 <h2 class="anchored" data-anchor-id="setup">Setup</h2>
-<p>You will need the <code>tidyverse</code> and <code>palmerpenguins</code> packages.</p>
+<p>You will need the <code>tidyverse</code>, <code>palmerpenguins</code>, and <code>nycflights13</code> packages.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(palmerpenguins)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>pak<span class="sc">::</span><span class="fu">pak</span>(<span class="fu">c</span>(</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="st">"tidyverse"</span>,</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="st">"here"</span>,</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  <span class="st">"nycflights13"</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>))</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(palmerpenguins)</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(nycflights13)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>The <code>tidyverse</code> is a collection of R packages designed for data science. <strong>dplyr</strong> is the tidyverse package focused on data manipulation.</p>
 <p>Some common dplyr functions are:</p>
@@ -3502,22 +3523,512 @@ Note
 </section>
 </section>
 </section>
+<section id="introduction-to-advanced-wrangling" class="level1">
+<h1>Introduction to advanced wrangling</h1>
+<section id="joins" class="level2">
+<h2 class="anchored" data-anchor-id="joins">joins</h2>
+<p>There are two main types of joins: mutation joins and filtering joins.</p>
+<p>Mutating joins add new variables to one data frame from matching observations in another.</p>
+<p>Filtering joins filter observations from one data frame based on whether or not they match an observation in another.</p>
+<p>For this section, we will be working with <code>nycflights13</code> <a href="https://github.com/tidyverse/nycflights13">a compilation of datasets</a> that contains information about all flights that departed from NYC (e.g.&nbsp;EWR, JFK and LGA) to destinations in the United States, Puerto Rico, and the American Virgin Islands) in 2013. The explanations and code used here are modified from Chapter 19 of Hadley Wickham’s <a href="https://r4ds.hadley.nz/joins.html">R for Data Science</a>.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb243"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb243-1"><a href="#cb243-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(nycflights13)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>To understand joins, you need to first understand how two tables can be connected through a pair of keys, within each table. In this section, you’ll learn about the two types of key and see examples of both in the datasets of the nycflights13 package. You’ll also learn how to check that your keys are valid, and what to do if your table lacks a key.</p>
+<section id="primary-and-foreign-keys" class="level3">
+<h3 class="anchored" data-anchor-id="primary-and-foreign-keys">Primary and foreign keys</h3>
+<p>Every join involves a pair of keys: a primary key and a foreign key. A primary key is a variable or set of variables that uniquely identifies each observation. When more than one variable is needed, the key is called a compound key.</p>
+<p>Let’s look at a few datasets in the <code>nycflights</code> package.</p>
+<p><code>airlines</code> records two pieces of data about each airline: its carrier code and its full name. You can identify an airline with its two letter carrier code, making <code>carrier</code> the primary key.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb244"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb244-1"><a href="#cb244-1" aria-hidden="true" tabindex="-1"></a>airlines</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 16 × 2
+   carrier name                       
+   &lt;chr&gt;   &lt;chr&gt;                      
+ 1 9E      Endeavor Air Inc.          
+ 2 AA      American Airlines Inc.     
+ 3 AS      Alaska Airlines Inc.       
+ 4 B6      JetBlue Airways            
+ 5 DL      Delta Air Lines Inc.       
+ 6 EV      ExpressJet Airlines Inc.   
+ 7 F9      Frontier Airlines Inc.     
+ 8 FL      AirTran Airways Corporation
+ 9 HA      Hawaiian Airlines Inc.     
+10 MQ      Envoy Air                  
+11 OO      SkyWest Airlines Inc.      
+12 UA      United Air Lines Inc.      
+13 US      US Airways Inc.            
+14 VX      Virgin America             
+15 WN      Southwest Airlines Co.     
+16 YV      Mesa Airlines Inc.         </code></pre>
+</div>
+</div>
+<p><code>airports</code> records data about each airport. You can identify each airport by its three letter airport code, making <code>faa</code> the primary key.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb246"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb246-1"><a href="#cb246-1" aria-hidden="true" tabindex="-1"></a>airports</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1,458 × 8
+   faa   name                             lat    lon   alt    tz dst   tzone    
+   &lt;chr&gt; &lt;chr&gt;                          &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;chr&gt; &lt;chr&gt;    
+ 1 04G   Lansdowne Airport               41.1  -80.6  1044    -5 A     America/…
+ 2 06A   Moton Field Municipal Airport   32.5  -85.7   264    -6 A     America/…
+ 3 06C   Schaumburg Regional             42.0  -88.1   801    -6 A     America/…
+ 4 06N   Randall Airport                 41.4  -74.4   523    -5 A     America/…
+ 5 09J   Jekyll Island Airport           31.1  -81.4    11    -5 A     America/…
+ 6 0A9   Elizabethton Municipal Airport  36.4  -82.2  1593    -5 A     America/…
+ 7 0G6   Williams County Airport         41.5  -84.5   730    -5 A     America/…
+ 8 0G7   Finger Lakes Regional Airport   42.9  -76.8   492    -5 A     America/…
+ 9 0P2   Shoestring Aviation Airfield    39.8  -76.6  1000    -5 U     America/…
+10 0S9   Jefferson County Intl           48.1 -123.    108    -8 A     America/…
+# ℹ 1,448 more rows</code></pre>
+</div>
+</div>
+<p><code>weather</code> records data about the weather at the origin airports. You can identify each observation by the combination of location and time, making <code>origin</code> and <code>time_hour</code> the compound primary key. Note you can’t see <code>time_hour</code> by just printing the name of the object. You have to use <code>glimpse()</code>.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb248"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb248-1"><a href="#cb248-1" aria-hidden="true" tabindex="-1"></a>weather </span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 26,115 × 15
+   origin  year month   day  hour  temp  dewp humid wind_dir wind_speed
+   &lt;chr&gt;  &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;    &lt;dbl&gt;      &lt;dbl&gt;
+ 1 EWR     2013     1     1     1  39.0  26.1  59.4      270      10.4 
+ 2 EWR     2013     1     1     2  39.0  27.0  61.6      250       8.06
+ 3 EWR     2013     1     1     3  39.0  28.0  64.4      240      11.5 
+ 4 EWR     2013     1     1     4  39.9  28.0  62.2      250      12.7 
+ 5 EWR     2013     1     1     5  39.0  28.0  64.4      260      12.7 
+ 6 EWR     2013     1     1     6  37.9  28.0  67.2      240      11.5 
+ 7 EWR     2013     1     1     7  39.0  28.0  64.4      240      15.0 
+ 8 EWR     2013     1     1     8  39.9  28.0  62.2      250      10.4 
+ 9 EWR     2013     1     1     9  39.9  28.0  62.2      260      15.0 
+10 EWR     2013     1     1    10  41    28.0  59.6      260      13.8 
+# ℹ 26,105 more rows
+# ℹ 5 more variables: wind_gust &lt;dbl&gt;, precip &lt;dbl&gt;, pressure &lt;dbl&gt;,
+#   visib &lt;dbl&gt;, time_hour &lt;dttm&gt;</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb250"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb250-1"><a href="#cb250-1" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(weather)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 26,115
+Columns: 15
+$ origin     &lt;chr&gt; "EWR", "EWR", "EWR", "EWR", "EWR", "EWR", "EWR", "EWR", "EW…
+$ year       &lt;int&gt; 2013, 2013, 2013, 2013, 2013, 2013, 2013, 2013, 2013, 2013,…
+$ month      &lt;int&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,…
+$ day        &lt;int&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,…
+$ hour       &lt;int&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, …
+$ temp       &lt;dbl&gt; 39.02, 39.02, 39.02, 39.92, 39.02, 37.94, 39.02, 39.92, 39.…
+$ dewp       &lt;dbl&gt; 26.06, 26.96, 28.04, 28.04, 28.04, 28.04, 28.04, 28.04, 28.…
+$ humid      &lt;dbl&gt; 59.37, 61.63, 64.43, 62.21, 64.43, 67.21, 64.43, 62.21, 62.…
+$ wind_dir   &lt;dbl&gt; 270, 250, 240, 250, 260, 240, 240, 250, 260, 260, 260, 330,…
+$ wind_speed &lt;dbl&gt; 10.35702, 8.05546, 11.50780, 12.65858, 12.65858, 11.50780, …
+$ wind_gust  &lt;dbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, 20.…
+$ precip     &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…
+$ pressure   &lt;dbl&gt; 1012.0, 1012.3, 1012.5, 1012.2, 1011.9, 1012.4, 1012.2, 101…
+$ visib      &lt;dbl&gt; 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10,…
+$ time_hour  &lt;dttm&gt; 2013-01-01 01:00:00, 2013-01-01 02:00:00, 2013-01-01 03:00…</code></pre>
+</div>
+</div>
+<p>Let’s look at <code>flights</code>, which is the main data frame in <code>nycflights13</code> that contains one row for each flight that departed from NYC (either JFK, LGA, or EWR) in 2013. The other data frames are metadata that provide additional information about airlines, airports, planes, weather, etc.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb252"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb252-1"><a href="#cb252-1" aria-hidden="true" tabindex="-1"></a>flights</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 336,776 × 19
+    year month   day dep_time sched_dep_time dep_delay arr_time sched_arr_time
+   &lt;int&gt; &lt;int&gt; &lt;int&gt;    &lt;int&gt;          &lt;int&gt;     &lt;dbl&gt;    &lt;int&gt;          &lt;int&gt;
+ 1  2013     1     1      517            515         2      830            819
+ 2  2013     1     1      533            529         4      850            830
+ 3  2013     1     1      542            540         2      923            850
+ 4  2013     1     1      544            545        -1     1004           1022
+ 5  2013     1     1      554            600        -6      812            837
+ 6  2013     1     1      554            558        -4      740            728
+ 7  2013     1     1      555            600        -5      913            854
+ 8  2013     1     1      557            600        -3      709            723
+ 9  2013     1     1      557            600        -3      838            846
+10  2013     1     1      558            600        -2      753            745
+# ℹ 336,766 more rows
+# ℹ 11 more variables: arr_delay &lt;dbl&gt;, carrier &lt;chr&gt;, flight &lt;int&gt;,
+#   tailnum &lt;chr&gt;, origin &lt;chr&gt;, dest &lt;chr&gt;, air_time &lt;dbl&gt;, distance &lt;dbl&gt;,
+#   hour &lt;dbl&gt;, minute &lt;dbl&gt;, time_hour &lt;dttm&gt;</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb254"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb254-1"><a href="#cb254-1" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(flights)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 336,776
+Columns: 19
+$ year           &lt;int&gt; 2013, 2013, 2013, 2013, 2013, 2013, 2013, 2013, 2013, 2…
+$ month          &lt;int&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1…
+$ day            &lt;int&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1…
+$ dep_time       &lt;int&gt; 517, 533, 542, 544, 554, 554, 555, 557, 557, 558, 558, …
+$ sched_dep_time &lt;int&gt; 515, 529, 540, 545, 600, 558, 600, 600, 600, 600, 600, …
+$ dep_delay      &lt;dbl&gt; 2, 4, 2, -1, -6, -4, -5, -3, -3, -2, -2, -2, -2, -2, -1…
+$ arr_time       &lt;int&gt; 830, 850, 923, 1004, 812, 740, 913, 709, 838, 753, 849,…
+$ sched_arr_time &lt;int&gt; 819, 830, 850, 1022, 837, 728, 854, 723, 846, 745, 851,…
+$ arr_delay      &lt;dbl&gt; 11, 20, 33, -18, -25, 12, 19, -14, -8, 8, -2, -3, 7, -1…
+$ carrier        &lt;chr&gt; "UA", "UA", "AA", "B6", "DL", "UA", "B6", "EV", "B6", "…
+$ flight         &lt;int&gt; 1545, 1714, 1141, 725, 461, 1696, 507, 5708, 79, 301, 4…
+$ tailnum        &lt;chr&gt; "N14228", "N24211", "N619AA", "N804JB", "N668DN", "N394…
+$ origin         &lt;chr&gt; "EWR", "LGA", "JFK", "JFK", "LGA", "EWR", "EWR", "LGA",…
+$ dest           &lt;chr&gt; "IAH", "IAH", "MIA", "BQN", "ATL", "ORD", "FLL", "IAD",…
+$ air_time       &lt;dbl&gt; 227, 227, 160, 183, 116, 150, 158, 53, 140, 138, 149, 1…
+$ distance       &lt;dbl&gt; 1400, 1416, 1089, 1576, 762, 719, 1065, 229, 944, 733, …
+$ hour           &lt;dbl&gt; 5, 5, 5, 5, 6, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 5, 6, 6, 6…
+$ minute         &lt;dbl&gt; 15, 29, 40, 45, 0, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 59, 0…
+$ time_hour      &lt;dttm&gt; 2013-01-01 05:00:00, 2013-01-01 05:00:00, 2013-01-01 0…</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb256"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb256-1"><a href="#cb256-1" aria-hidden="true" tabindex="-1"></a><span class="fu">nrow</span>(flights)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 336776</code></pre>
+</div>
+</div>
+<p>Now we can use foreign keys to match information from these other data frames to flights so we can learn more about each flight. A foreign key is a variable (or set of variables) that corresponds to a primary key in another table. For example:</p>
+<p><code>flights$tailnum</code> is a foreign key that corresponds to the primary key <code>planes$tailnum</code>. <code>flights$carrier</code> is a foreign key that corresponds to the primary key <code>airlines$carrier</code>. <code>flights$origin</code> is a foreign key that corresponds to the primary key <code>airports$faa</code>. <code>flights$dest</code> is a foreign key that corresponds to the primary key <code>airports$faa</code>. (<code>flights$origin</code>, <code>flights$time_hour</code>) is a compound foreign key that corresponds to the compound primary key (<code>weather$origin</code>, <code>weather$time_hour</code>).</p>
+<p>Let’s start with a mutating join. A mutating join allows you to combine variables from two data frames: it first matches observations by their keys, then copies across variables from one data frame to the other. Like <code>mutate()</code>, the join functions add variables to the right, so if your dataset has many variables, you won’t see the new ones. For these examples, we’ll make it easier to see what’s going on by creating a narrower dataset with just six variables:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb258"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb258-1"><a href="#cb258-1" aria-hidden="true" tabindex="-1"></a>flights2 <span class="ot">&lt;-</span> flights <span class="sc">|&gt;</span> </span>
+<span id="cb258-2"><a href="#cb258-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(year, time_hour, origin, dest, tailnum, carrier)</span>
+<span id="cb258-3"><a href="#cb258-3" aria-hidden="true" tabindex="-1"></a>flights2</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 336,776 × 6
+    year time_hour           origin dest  tailnum carrier
+   &lt;int&gt; &lt;dttm&gt;              &lt;chr&gt;  &lt;chr&gt; &lt;chr&gt;   &lt;chr&gt;  
+ 1  2013 2013-01-01 05:00:00 EWR    IAH   N14228  UA     
+ 2  2013 2013-01-01 05:00:00 LGA    IAH   N24211  UA     
+ 3  2013 2013-01-01 05:00:00 JFK    MIA   N619AA  AA     
+ 4  2013 2013-01-01 05:00:00 JFK    BQN   N804JB  B6     
+ 5  2013 2013-01-01 06:00:00 LGA    ATL   N668DN  DL     
+ 6  2013 2013-01-01 05:00:00 EWR    ORD   N39463  UA     
+ 7  2013 2013-01-01 06:00:00 EWR    FLL   N516JB  B6     
+ 8  2013 2013-01-01 06:00:00 LGA    IAD   N829AS  EV     
+ 9  2013 2013-01-01 06:00:00 JFK    MCO   N593JB  B6     
+10  2013 2013-01-01 06:00:00 LGA    ORD   N3ALAA  AA     
+# ℹ 336,766 more rows</code></pre>
+</div>
+</div>
+<p>There are four types of mutating join, but there’s one that you’ll use almost all of the time: <code>left_join()</code>. It’s special because the output will always have the same rows as x, the data frame you’re joining to. The primary use of <code>left_join()</code> is to add in additional metadata. For example, we can use <code>left_join()</code> to add the full airline name to the <code>flights2</code> data:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb260"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb260-1"><a href="#cb260-1" aria-hidden="true" tabindex="-1"></a>flights2 <span class="sc">|&gt;</span></span>
+<span id="cb260-2"><a href="#cb260-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(airlines)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 336,776 × 7
+    year time_hour           origin dest  tailnum carrier name                  
+   &lt;int&gt; &lt;dttm&gt;              &lt;chr&gt;  &lt;chr&gt; &lt;chr&gt;   &lt;chr&gt;   &lt;chr&gt;                 
+ 1  2013 2013-01-01 05:00:00 EWR    IAH   N14228  UA      United Air Lines Inc. 
+ 2  2013 2013-01-01 05:00:00 LGA    IAH   N24211  UA      United Air Lines Inc. 
+ 3  2013 2013-01-01 05:00:00 JFK    MIA   N619AA  AA      American Airlines Inc.
+ 4  2013 2013-01-01 05:00:00 JFK    BQN   N804JB  B6      JetBlue Airways       
+ 5  2013 2013-01-01 06:00:00 LGA    ATL   N668DN  DL      Delta Air Lines Inc.  
+ 6  2013 2013-01-01 05:00:00 EWR    ORD   N39463  UA      United Air Lines Inc. 
+ 7  2013 2013-01-01 06:00:00 EWR    FLL   N516JB  B6      JetBlue Airways       
+ 8  2013 2013-01-01 06:00:00 LGA    IAD   N829AS  EV      ExpressJet Airlines I…
+ 9  2013 2013-01-01 06:00:00 JFK    MCO   N593JB  B6      JetBlue Airways       
+10  2013 2013-01-01 06:00:00 LGA    ORD   N3ALAA  AA      American Airlines Inc.
+# ℹ 336,766 more rows</code></pre>
+</div>
+</div>
+<p>Or we could find out the temperature and wind speed when each plane departed:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb262"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb262-1"><a href="#cb262-1" aria-hidden="true" tabindex="-1"></a>flights2 <span class="sc">|&gt;</span> </span>
+<span id="cb262-2"><a href="#cb262-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(weather <span class="sc">|&gt;</span> <span class="fu">select</span>(origin, time_hour, temp, wind_speed))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 336,776 × 8
+    year time_hour           origin dest  tailnum carrier  temp wind_speed
+   &lt;int&gt; &lt;dttm&gt;              &lt;chr&gt;  &lt;chr&gt; &lt;chr&gt;   &lt;chr&gt;   &lt;dbl&gt;      &lt;dbl&gt;
+ 1  2013 2013-01-01 05:00:00 EWR    IAH   N14228  UA       39.0       12.7
+ 2  2013 2013-01-01 05:00:00 LGA    IAH   N24211  UA       39.9       15.0
+ 3  2013 2013-01-01 05:00:00 JFK    MIA   N619AA  AA       39.0       15.0
+ 4  2013 2013-01-01 05:00:00 JFK    BQN   N804JB  B6       39.0       15.0
+ 5  2013 2013-01-01 06:00:00 LGA    ATL   N668DN  DL       39.9       16.1
+ 6  2013 2013-01-01 05:00:00 EWR    ORD   N39463  UA       39.0       12.7
+ 7  2013 2013-01-01 06:00:00 EWR    FLL   N516JB  B6       37.9       11.5
+ 8  2013 2013-01-01 06:00:00 LGA    IAD   N829AS  EV       39.9       16.1
+ 9  2013 2013-01-01 06:00:00 JFK    MCO   N593JB  B6       37.9       13.8
+10  2013 2013-01-01 06:00:00 LGA    ORD   N3ALAA  AA       39.9       16.1
+# ℹ 336,766 more rows</code></pre>
+</div>
+</div>
+<p>When <code>left_join()</code> fails to find a match for a row in x, it fills in the new variables with missing values. For example, there’s no information about the plane with tail number N3ALAA so the type, engines, and seats will be missing:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb264"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb264-1"><a href="#cb264-1" aria-hidden="true" tabindex="-1"></a>flights2 <span class="sc">|&gt;</span> </span>
+<span id="cb264-2"><a href="#cb264-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(tailnum <span class="sc">==</span> <span class="st">"N3ALAA"</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb264-3"><a href="#cb264-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(planes <span class="sc">|&gt;</span> <span class="fu">select</span>(tailnum, type, engines, seats))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 63 × 9
+    year time_hour           origin dest  tailnum carrier type  engines seats
+   &lt;int&gt; &lt;dttm&gt;              &lt;chr&gt;  &lt;chr&gt; &lt;chr&gt;   &lt;chr&gt;   &lt;chr&gt;   &lt;int&gt; &lt;int&gt;
+ 1  2013 2013-01-01 06:00:00 LGA    ORD   N3ALAA  AA      &lt;NA&gt;       NA    NA
+ 2  2013 2013-01-02 18:00:00 LGA    ORD   N3ALAA  AA      &lt;NA&gt;       NA    NA
+ 3  2013 2013-01-03 06:00:00 LGA    ORD   N3ALAA  AA      &lt;NA&gt;       NA    NA
+ 4  2013 2013-01-07 19:00:00 LGA    ORD   N3ALAA  AA      &lt;NA&gt;       NA    NA
+ 5  2013 2013-01-08 17:00:00 JFK    ORD   N3ALAA  AA      &lt;NA&gt;       NA    NA
+ 6  2013 2013-01-16 06:00:00 LGA    ORD   N3ALAA  AA      &lt;NA&gt;       NA    NA
+ 7  2013 2013-01-20 18:00:00 LGA    ORD   N3ALAA  AA      &lt;NA&gt;       NA    NA
+ 8  2013 2013-01-22 17:00:00 JFK    ORD   N3ALAA  AA      &lt;NA&gt;       NA    NA
+ 9  2013 2013-10-11 06:00:00 EWR    MIA   N3ALAA  AA      &lt;NA&gt;       NA    NA
+10  2013 2013-10-14 08:00:00 JFK    BOS   N3ALAA  AA      &lt;NA&gt;       NA    NA
+# ℹ 53 more rows</code></pre>
+</div>
+</div>
+<p>By default, <code>left_join()</code> will use all variables that appear in both data frames as the join key, the so called natural join. This is a useful heuristic, but it doesn’t always work. For example, what happens if we try to join <code>flights2</code> with the complete <code>planes</code> dataset?</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb266"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb266-1"><a href="#cb266-1" aria-hidden="true" tabindex="-1"></a>flights2 <span class="sc">|&gt;</span> </span>
+<span id="cb266-2"><a href="#cb266-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(planes)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 336,776 × 13
+    year time_hour           origin dest  tailnum carrier type  manufacturer
+   &lt;int&gt; &lt;dttm&gt;              &lt;chr&gt;  &lt;chr&gt; &lt;chr&gt;   &lt;chr&gt;   &lt;chr&gt; &lt;chr&gt;       
+ 1  2013 2013-01-01 05:00:00 EWR    IAH   N14228  UA      &lt;NA&gt;  &lt;NA&gt;        
+ 2  2013 2013-01-01 05:00:00 LGA    IAH   N24211  UA      &lt;NA&gt;  &lt;NA&gt;        
+ 3  2013 2013-01-01 05:00:00 JFK    MIA   N619AA  AA      &lt;NA&gt;  &lt;NA&gt;        
+ 4  2013 2013-01-01 05:00:00 JFK    BQN   N804JB  B6      &lt;NA&gt;  &lt;NA&gt;        
+ 5  2013 2013-01-01 06:00:00 LGA    ATL   N668DN  DL      &lt;NA&gt;  &lt;NA&gt;        
+ 6  2013 2013-01-01 05:00:00 EWR    ORD   N39463  UA      &lt;NA&gt;  &lt;NA&gt;        
+ 7  2013 2013-01-01 06:00:00 EWR    FLL   N516JB  B6      &lt;NA&gt;  &lt;NA&gt;        
+ 8  2013 2013-01-01 06:00:00 LGA    IAD   N829AS  EV      &lt;NA&gt;  &lt;NA&gt;        
+ 9  2013 2013-01-01 06:00:00 JFK    MCO   N593JB  B6      &lt;NA&gt;  &lt;NA&gt;        
+10  2013 2013-01-01 06:00:00 LGA    ORD   N3ALAA  AA      &lt;NA&gt;  &lt;NA&gt;        
+# ℹ 336,766 more rows
+# ℹ 5 more variables: model &lt;chr&gt;, engines &lt;int&gt;, seats &lt;int&gt;, speed &lt;int&gt;,
+#   engine &lt;chr&gt;</code></pre>
+</div>
+</div>
+<p>We get a lot of missing matches because our join is trying to use <code>tailnum</code> and <code>year</code> as a compound key. Both <code>flights</code> and <code>planes</code> have a <code>year</code> column but they mean different things: <code>flights$year</code> is the year the flight occurred and <code>planes$year</code> is the year the plane was built. We only want to join on <code>tailnum</code> so we need to provide an explicit specification with <code>join_by()</code>:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb268"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb268-1"><a href="#cb268-1" aria-hidden="true" tabindex="-1"></a>flights2 <span class="sc">|&gt;</span> </span>
+<span id="cb268-2"><a href="#cb268-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(planes, <span class="fu">join_by</span>(tailnum))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 336,776 × 14
+   year.x time_hour           origin dest  tailnum carrier year.y type          
+    &lt;int&gt; &lt;dttm&gt;              &lt;chr&gt;  &lt;chr&gt; &lt;chr&gt;   &lt;chr&gt;    &lt;int&gt; &lt;chr&gt;         
+ 1   2013 2013-01-01 05:00:00 EWR    IAH   N14228  UA        1999 Fixed wing mu…
+ 2   2013 2013-01-01 05:00:00 LGA    IAH   N24211  UA        1998 Fixed wing mu…
+ 3   2013 2013-01-01 05:00:00 JFK    MIA   N619AA  AA        1990 Fixed wing mu…
+ 4   2013 2013-01-01 05:00:00 JFK    BQN   N804JB  B6        2012 Fixed wing mu…
+ 5   2013 2013-01-01 06:00:00 LGA    ATL   N668DN  DL        1991 Fixed wing mu…
+ 6   2013 2013-01-01 05:00:00 EWR    ORD   N39463  UA        2012 Fixed wing mu…
+ 7   2013 2013-01-01 06:00:00 EWR    FLL   N516JB  B6        2000 Fixed wing mu…
+ 8   2013 2013-01-01 06:00:00 LGA    IAD   N829AS  EV        1998 Fixed wing mu…
+ 9   2013 2013-01-01 06:00:00 JFK    MCO   N593JB  B6        2004 Fixed wing mu…
+10   2013 2013-01-01 06:00:00 LGA    ORD   N3ALAA  AA          NA &lt;NA&gt;          
+# ℹ 336,766 more rows
+# ℹ 6 more variables: manufacturer &lt;chr&gt;, model &lt;chr&gt;, engines &lt;int&gt;,
+#   seats &lt;int&gt;, speed &lt;int&gt;, engine &lt;chr&gt;</code></pre>
+</div>
+</div>
+<p>Note that the <code>year</code> variables are disambiguated in the output with a suffix (<code>year.x</code> and <code>year.y</code>), which tells you whether the variable came from the x or y argument. You can override the default suffixes with the suffix argument. Also note that <code>join_by(tailnum)</code> is short for <code>join_by(tailnum == tailnum)</code>.</p>
+<p>Let’s move on to filtering joins. As you might guess the primary action of a filtering join is to filter the rows. There are two types: semi-joins and anti-joins. Semi-joins keep all rows in x that have a match in y. For example, we could use a semi-join to filter the airports dataset to show just the origin airports:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb270"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb270-1"><a href="#cb270-1" aria-hidden="true" tabindex="-1"></a>airports <span class="sc">|&gt;</span> </span>
+<span id="cb270-2"><a href="#cb270-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">semi_join</span>(flights2, <span class="fu">join_by</span>(faa <span class="sc">==</span> origin))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 8
+  faa   name                  lat   lon   alt    tz dst   tzone           
+  &lt;chr&gt; &lt;chr&gt;               &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;chr&gt; &lt;chr&gt;           
+1 EWR   Newark Liberty Intl  40.7 -74.2    18    -5 A     America/New_York
+2 JFK   John F Kennedy Intl  40.6 -73.8    13    -5 A     America/New_York
+3 LGA   La Guardia           40.8 -73.9    22    -5 A     America/New_York</code></pre>
+</div>
+</div>
+<p>This keeps only airports whose <code>faa</code> code appears in <code>flights2$origin</code>.</p>
+<p>Anti-joins are the opposite: they return all rows in x that don’t have a match in y. For example, we can find rows that are missing from <code>airports</code> by looking for flights that don’t have a matching destination airport:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb272"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb272-1"><a href="#cb272-1" aria-hidden="true" tabindex="-1"></a>flights2 <span class="sc">|&gt;</span> </span>
+<span id="cb272-2"><a href="#cb272-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">anti_join</span>(airports, <span class="fu">join_by</span>(dest <span class="sc">==</span> faa)) <span class="sc">|&gt;</span> </span>
+<span id="cb272-3"><a href="#cb272-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">distinct</span>(dest)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 4 × 1
+  dest 
+  &lt;chr&gt;
+1 BQN  
+2 SJU  
+3 STT  
+4 PSE  </code></pre>
+</div>
+</div>
+<p>Or we can find which <code>tailnums</code> are missing from <code>planes</code>:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb274"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb274-1"><a href="#cb274-1" aria-hidden="true" tabindex="-1"></a>flights2 <span class="sc">|&gt;</span></span>
+<span id="cb274-2"><a href="#cb274-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">anti_join</span>(planes, <span class="fu">join_by</span>(tailnum)) <span class="sc">|&gt;</span> </span>
+<span id="cb274-3"><a href="#cb274-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">distinct</span>(tailnum)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 722 × 1
+   tailnum
+   &lt;chr&gt;  
+ 1 N3ALAA 
+ 2 N3DUAA 
+ 3 N542MQ 
+ 4 N730MQ 
+ 5 N9EAMQ 
+ 6 N532UA 
+ 7 N3EMAA 
+ 8 N518MQ 
+ 9 N3BAAA 
+10 N3CYAA 
+# ℹ 712 more rows</code></pre>
+</div>
+</div>
+<p>There is A LOT more to know about joins but now you have an introduction. For more practice and information, see: 1. <a href="https://r4ds.hadley.nz/joins.html#introduction">The full R for Data Science Chapter</a> 2. <a href="https://dplyr.tidyverse.org/articles/two-table.html">dplyr vignette</a> 3. <a href="https://dplyr.tidyverse.org/reference/mutate-joins.html">R doumentation for mutating joins</a> 4. <a href="https://dplyr.tidyverse.org/reference/filter-joins.html">R documentation for filtering joins</a></p>
+</section>
+</section>
+<section id="strings" class="level2">
+<h2 class="anchored" data-anchor-id="strings">Strings</h2>
+<p>In R, a string is text. Strings are stored as character values and are usually written inside quotation marks. The <code>{tidyverse}</code> has a package called <code>{stringr}</code> that makes working with strings easier and more consistent. There is a lot to learn here and we will just touch on the basics. For more information, check out the <a href="https://stringr.tidyverse.org/articles/stringr.html">package documentation</a>.</p>
+<p>There are four main families of functions in <code>{stringr}</code>:</p>
+<ol type="1">
+<li>Character manipulation: these functions allow you to manipulate individual characters within the strings in character vectors.</li>
+<li>Whitespace tools to add, remove, and manipulate whitespace.</li>
+<li>Locale sensitive operations whose operations will vary from locale to locale.</li>
+<li>Pattern matching functions. These recognise four engines of pattern description. The most common is regular expressions, but there are three other tools.</li>
+</ol>
+<p>Let’s go over the most common uses. For this, we will work with a vector of 3 strings:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb276"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb276-1"><a href="#cb276-1" aria-hidden="true" tabindex="-1"></a>species <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<span id="cb276-2"><a href="#cb276-2" aria-hidden="true" tabindex="-1"></a>  <span class="st">"  Sandbar Shark"</span>,</span>
+<span id="cb276-3"><a href="#cb276-3" aria-hidden="true" tabindex="-1"></a>  <span class="st">"BLACKTIP SHARK  "</span>,</span>
+<span id="cb276-4"><a href="#cb276-4" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Lemon Shark"</span></span>
+<span id="cb276-5"><a href="#cb276-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>There is extra space around the first string so use <code>str_trim</code> to remove it:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb277"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb277-1"><a href="#cb277-1" aria-hidden="true" tabindex="-1"></a>species <span class="ot">&lt;-</span> <span class="fu">str_trim</span>(species)</span>
+<span id="cb277-2"><a href="#cb277-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb277-3"><a href="#cb277-3" aria-hidden="true" tabindex="-1"></a>species</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Sandbar Shark"  "BLACKTIP SHARK" "Lemon Shark"   </code></pre>
+</div>
+</div>
+<p>The capitalization is a mess. Let’s fix it by making it all lowercase:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb279"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb279-1"><a href="#cb279-1" aria-hidden="true" tabindex="-1"></a>species <span class="ot">&lt;-</span> <span class="fu">str_to_lower</span>(species)</span>
+<span id="cb279-2"><a href="#cb279-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb279-3"><a href="#cb279-3" aria-hidden="true" tabindex="-1"></a>species  </span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "sandbar shark"  "blacktip shark" "lemon shark"   </code></pre>
+</div>
+</div>
+<p>We can ask if the vector of strings contains a specific string, “Shark”:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb281"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb281-1"><a href="#cb281-1" aria-hidden="true" tabindex="-1"></a><span class="fu">str_detect</span>(species, <span class="st">"Shark"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] FALSE FALSE FALSE</code></pre>
+</div>
+</div>
+<p>Remember, R is case sensitive.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb283"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb283-1"><a href="#cb283-1" aria-hidden="true" tabindex="-1"></a><span class="fu">str_detect</span>(species, <span class="st">"shark"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE TRUE TRUE</code></pre>
+</div>
+</div>
+<p>We can replace a string or part of a string:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb285"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb285-1"><a href="#cb285-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Replace text</span></span>
+<span id="cb285-2"><a href="#cb285-2" aria-hidden="true" tabindex="-1"></a><span class="fu">str_replace</span>(species, <span class="st">"lemon"</span>, <span class="st">"yellow"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "sandbar shark"  "blacktip shark" "yellow shark"  </code></pre>
+</div>
+</div>
+<p>Let’s look a more realistic data wrangling example. We first create a small tibble called fish with two columns: <code>sample_id</code> (an ID that contains both the state abbreviation and a sample number) and <code>species</code> (species names that are inconsistently formatted). Then we use <code>mutate()</code> to clean and create variables:</p>
+<p><code>str_trim(species)</code> removes extra spaces from the beginning and end of the species names. Here, <code>" sandbar shark "</code> becomes <code>"sandbar shark"</code>.</p>
+<p><code>str_to_title(species)</code> standardizes capitalization so each word begins with a capital letter. <code>"sandbar shark"</code> becomes <code>"Sandbar Shark"</code> and <code>"BLACKTIP SHARK"</code> becomes <code>"Blacktip Shark"</code>.</p>
+<p><code>str_sub(sample_id, 1, 2)</code> takes the first two characters from each sample_id and stores them in a new column called <code>state</code>. <code>"DE-001"</code> becomes <code>"DE"</code> and <code>"NJ-003"</code> becomes <code>"NJ"</code>.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb287"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb287-1"><a href="#cb287-1" aria-hidden="true" tabindex="-1"></a>fish <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb287-2"><a href="#cb287-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">sample_id =</span> <span class="fu">c</span>(<span class="st">"DE-001"</span>, <span class="st">"DE-002"</span>, <span class="st">"NJ-003"</span>),</span>
+<span id="cb287-3"><a href="#cb287-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">species =</span> <span class="fu">c</span>(<span class="st">" sandbar shark "</span>, <span class="st">"BLACKTIP SHARK"</span>, <span class="st">"Lemon Shark"</span>)</span>
+<span id="cb287-4"><a href="#cb287-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb287-5"><a href="#cb287-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb287-6"><a href="#cb287-6" aria-hidden="true" tabindex="-1"></a>fish <span class="sc">|&gt;</span></span>
+<span id="cb287-7"><a href="#cb287-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb287-8"><a href="#cb287-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">species =</span> <span class="fu">str_trim</span>(species),</span>
+<span id="cb287-9"><a href="#cb287-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">species =</span> <span class="fu">str_to_title</span>(species),</span>
+<span id="cb287-10"><a href="#cb287-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">state =</span> <span class="fu">str_sub</span>(sample_id, <span class="dv">1</span>, <span class="dv">2</span>)</span>
+<span id="cb287-11"><a href="#cb287-11" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 3
+  sample_id species        state
+  &lt;chr&gt;     &lt;chr&gt;          &lt;chr&gt;
+1 DE-001    Sandbar Shark  DE   
+2 DE-002    Blacktip Shark DE   
+3 NJ-003    Lemon Shark    NJ   </code></pre>
+</div>
+</div>
+</section>
+<section id="dates-and-times" class="level2">
+<h2 class="anchored" data-anchor-id="dates-and-times">Dates and Times</h2>
+<p>Dates and times are hard because they have to reconcile two physical phenomena (the rotation of the Earth and its orbit around the sun) with a whole raft of geopolitical phenomena including months, time zones, and DST. This tutorial won’t teach you every last detail about dates and times, but it will give you a solid grounding of practical skills that will help you with common data analysis challenges.</p>
+<p>For more information, consult <a href="https://r4ds.hadley.nz/datetimes.html">Chapter 17 of R for Data Science</a> and the <a href="https://lubridate.tidyverse.org/">lubridate package</a>.</p>
+<p>Dates and times are common in real datasets, but R needs to know that a variable represents a date or date-time before we can easily work with it. The <code>{lubridate}</code> package, which is part of the <code>{tidyverse}</code>, provides functions that make working with dates and times easier.</p>
+<section id="dates-versus-date-times" class="level3">
+<h3 class="anchored" data-anchor-id="dates-versus-date-times">Dates versus date-times</h3>
+<p>R distinguishes between a date, which contains a year, month, and day, and a date-time, which also contains a time of day.</p>
+<p>We can get today’s date with <code>today()</code> and the current date and time with <code>now()</code>:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb289"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb289-1"><a href="#cb289-1" aria-hidden="true" tabindex="-1"></a><span class="fu">today</span>() <span class="co"># date</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "2026-08-10"</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb291"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb291-1"><a href="#cb291-1" aria-hidden="true" tabindex="-1"></a><span class="fu">now</span>() <span class="co"># date-time</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "2026-08-10 10:41:30 EDT"</code></pre>
+</div>
+</div>
+<p>We can check how R stores these objects using <code>class()</code>:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb293"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb293-1"><a href="#cb293-1" aria-hidden="true" tabindex="-1"></a><span class="fu">class</span>(<span class="fu">today</span>())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Date"</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb295"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb295-1"><a href="#cb295-1" aria-hidden="true" tabindex="-1"></a><span class="fu">class</span>(<span class="fu">now</span>())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "POSIXct" "POSIXt" </code></pre>
+</div>
+</div>
+<p>Dates are generally displayed using the format YYYY-MM-DD; For example 2026-08-10 means August 10, 2026.</p>
+<p>Converting Character Strings to Dates</p>
+</section>
+<section id="dates-are-often-imported-into-r-as-character-strings-rather-than-as-actual-dates." class="level3">
+<h3 class="anchored" data-anchor-id="dates-are-often-imported-into-r-as-character-strings-rather-than-as-actual-dates.">Dates are often imported into R as character strings rather than as actual dates.</h3>
+<p>For example:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb297"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb297-1"><a href="#cb297-1" aria-hidden="true" tabindex="-1"></a>date <span class="ot">&lt;-</span> <span class="st">"2026-08-10"</span></span>
+<span id="cb297-2"><a href="#cb297-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb297-3"><a href="#cb297-3" aria-hidden="true" tabindex="-1"></a>date</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "2026-08-10"</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb299"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb299-1"><a href="#cb299-1" aria-hidden="true" tabindex="-1"></a><span class="fu">class</span>(date)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "character"</code></pre>
+</div>
+</div>
+<p>Although this looks like a date to us, R currently sees it as text.</p>
+<p>We can use functions from lubridate to convert character strings into dates.</p>
+<p>The name of the function tells R the order in which the components of the date appear:</p>
+<p>ymd() = year, month, day mdy() = month, day, year dmy() = day, month, year ymd(“2026-08-10”)</p>
+<p>mdy(“August 10, 2026”)</p>
+<p>dmy(“10-Aug-2026”)</p>
+<p>A useful rule is:</p>
+<p>Look at the order of the year, month, and day in your data and choose the corresponding lubridate function.</p>
+<p>For example:</p>
+<p>date &lt;- ymd(“2026-08-10”)</p>
+<p>class(date)</p>
+<p>R now recognizes this variable as a date rather than as character text.</p>
+</section>
+</section>
+</section>
 <section id="putting-it-all-together" class="level1">
 <h1>Putting it all together</h1>
 <p>A typical dplyr workflow combines several verbs rather than using one function in isolation.</p>
 <p>For example, suppose we want to compare average body size among female penguins by species and island.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb243"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb243-1"><a href="#cb243-1" aria-hidden="true" tabindex="-1"></a>penguins <span class="sc">|&gt;</span></span>
-<span id="cb243-2"><a href="#cb243-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(sex <span class="sc">==</span> <span class="st">"female"</span>) <span class="sc">|&gt;</span></span>
-<span id="cb243-3"><a href="#cb243-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">body_mass_kg =</span> body_mass_g <span class="sc">/</span> <span class="dv">1000</span>) <span class="sc">|&gt;</span></span>
-<span id="cb243-4"><a href="#cb243-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(species, island) <span class="sc">|&gt;</span></span>
-<span id="cb243-5"><a href="#cb243-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
-<span id="cb243-6"><a href="#cb243-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">n =</span> <span class="fu">n</span>(),</span>
-<span id="cb243-7"><a href="#cb243-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">mean_body_mass_kg =</span> <span class="fu">mean</span>(body_mass_kg, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb243-8"><a href="#cb243-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">sd_body_mass_kg =</span> <span class="fu">sd</span>(body_mass_kg, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb243-9"><a href="#cb243-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups =</span> <span class="st">"drop"</span></span>
-<span id="cb243-10"><a href="#cb243-10" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb243-11"><a href="#cb243-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">relocate</span>(n, <span class="at">.after =</span> island)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb301"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb301-1"><a href="#cb301-1" aria-hidden="true" tabindex="-1"></a>penguins <span class="sc">|&gt;</span></span>
+<span id="cb301-2"><a href="#cb301-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(sex <span class="sc">==</span> <span class="st">"female"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb301-3"><a href="#cb301-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">body_mass_kg =</span> body_mass_g <span class="sc">/</span> <span class="dv">1000</span>) <span class="sc">|&gt;</span></span>
+<span id="cb301-4"><a href="#cb301-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(species, island) <span class="sc">|&gt;</span></span>
+<span id="cb301-5"><a href="#cb301-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb301-6"><a href="#cb301-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">n =</span> <span class="fu">n</span>(),</span>
+<span id="cb301-7"><a href="#cb301-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">mean_body_mass_kg =</span> <span class="fu">mean</span>(body_mass_kg, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb301-8"><a href="#cb301-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">sd_body_mass_kg =</span> <span class="fu">sd</span>(body_mass_kg, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb301-9"><a href="#cb301-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups =</span> <span class="st">"drop"</span></span>
+<span id="cb301-10"><a href="#cb301-10" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb301-11"><a href="#cb301-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">relocate</span>(n, <span class="at">.after =</span> island)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 5 × 5
   species   island        n mean_body_mass_kg sd_body_mass_kg
@@ -3554,7 +4065,7 @@ Note
 <li>Count penguins by species, sex, and body-mass category.</li>
 </ol>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb245"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb245-1"><a href="#cb245-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Write your code here</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb303"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb303-1"><a href="#cb303-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Write your code here</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="callout callout-style-default callout-tip callout-titled">
 <div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-38-contents" aria-controls="callout-38" aria-expanded="false" aria-label="Toggle callout">
@@ -3569,17 +4080,17 @@ Note
 <div id="callout-38" class="callout-38-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb246"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb246-1"><a href="#cb246-1" aria-hidden="true" tabindex="-1"></a>penguins <span class="sc">|&gt;</span></span>
-<span id="cb246-2"><a href="#cb246-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(year <span class="sc">%in%</span> <span class="fu">c</span>(<span class="dv">2008</span>, <span class="dv">2009</span>), <span class="sc">!</span><span class="fu">is.na</span>(sex)) <span class="sc">|&gt;</span></span>
-<span id="cb246-3"><a href="#cb246-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb246-4"><a href="#cb246-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">body_mass_kg =</span> body_mass_g <span class="sc">/</span> <span class="dv">1000</span>,</span>
-<span id="cb246-5"><a href="#cb246-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">mass_category =</span> <span class="fu">case_when</span>(</span>
-<span id="cb246-6"><a href="#cb246-6" aria-hidden="true" tabindex="-1"></a>      body_mass_kg <span class="sc">&gt;=</span> <span class="fl">4.5</span> <span class="sc">~</span> <span class="st">"large"</span>,</span>
-<span id="cb246-7"><a href="#cb246-7" aria-hidden="true" tabindex="-1"></a>      body_mass_kg <span class="sc">&lt;</span> <span class="fl">4.5</span> <span class="sc">~</span> <span class="st">"small"</span>,</span>
-<span id="cb246-8"><a href="#cb246-8" aria-hidden="true" tabindex="-1"></a>      <span class="at">.default =</span> <span class="cn">NA_character_</span></span>
-<span id="cb246-9"><a href="#cb246-9" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb246-10"><a href="#cb246-10" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb246-11"><a href="#cb246-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(species, sex, mass_category)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb304"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb304-1"><a href="#cb304-1" aria-hidden="true" tabindex="-1"></a>penguins <span class="sc">|&gt;</span></span>
+<span id="cb304-2"><a href="#cb304-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(year <span class="sc">%in%</span> <span class="fu">c</span>(<span class="dv">2008</span>, <span class="dv">2009</span>), <span class="sc">!</span><span class="fu">is.na</span>(sex)) <span class="sc">|&gt;</span></span>
+<span id="cb304-3"><a href="#cb304-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb304-4"><a href="#cb304-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">body_mass_kg =</span> body_mass_g <span class="sc">/</span> <span class="dv">1000</span>,</span>
+<span id="cb304-5"><a href="#cb304-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">mass_category =</span> <span class="fu">case_when</span>(</span>
+<span id="cb304-6"><a href="#cb304-6" aria-hidden="true" tabindex="-1"></a>      body_mass_kg <span class="sc">&gt;=</span> <span class="fl">4.5</span> <span class="sc">~</span> <span class="st">"large"</span>,</span>
+<span id="cb304-7"><a href="#cb304-7" aria-hidden="true" tabindex="-1"></a>      body_mass_kg <span class="sc">&lt;</span> <span class="fl">4.5</span> <span class="sc">~</span> <span class="st">"small"</span>,</span>
+<span id="cb304-8"><a href="#cb304-8" aria-hidden="true" tabindex="-1"></a>      <span class="at">.default =</span> <span class="cn">NA_character_</span></span>
+<span id="cb304-9"><a href="#cb304-9" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb304-10"><a href="#cb304-10" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb304-11"><a href="#cb304-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(species, sex, mass_category)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 9 × 4
   species   sex    mass_category     n
