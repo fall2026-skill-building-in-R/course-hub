@@ -17,19 +17,19 @@ execute:
 
 ## Overview
 
-In this tutorial, we will use **dplyr** to practice common data-wrangling tasks in R. We will work with the `penguins` data from the **palmerpenguins** package.
+Overview
+
+In this tutorial, we will use `{dplyr}` to practice core data-wrangling tasks in R. We will work with the penguins data from the `palmerpenguins` package.
 
 By the end of the tutorial, you should be able to:
 
-- use `filter()` to keep observations that meet specified conditions;
-- use `select()` to keep, remove, or reorder variables;
-- use `relocate()` to move variables without dropping any columns;
-- use `rename()` and `rename_with()` to change variable names;
-- use `mutate()` to create or modify variables;
-- combine `group_by()` with `summarise()` to calculate grouped summaries;
-- use `across()` to apply the same operation to multiple variables;
-- use `count()` to quickly count observations by groups; and
-- use `case_when()` to create variables from multiple logical conditions.
+use `filter()` to keep observations that meet specified conditions;
+use `select()` to keep or remove variables;
+use `relocate()` to reorder variables without dropping columns;
+use `rename()` and `rename_with()` to change variable names;
+use `mutate()` to create or modify variables;
+combine `group_by()` with `summarise()` to calculate summaries for groups; and
+combine multiple `{dplyr}` functions with the pipe (`|>`) to build data-wrangling workflows.
 
 ::: callout-note
 This lesson is an instructor-led adaptation inspired by Allison Horst's *Wrangling penguins: some basic data wrangling in R with dplyr* LearnR tutorial. The structure and explanations here have been rewritten for a classroom Quarto workflow, and current dplyr syntax is used where the package has changed.
@@ -39,13 +39,1116 @@ Source: <https://allisonhorst.shinyapps.io/dplyr-learnr/>
 
 ## Setup
 
-You will need the `tidyverse` and `palmerpenguins` packages.
+You will need the `tidyverse` and the `palmerpenguins` packages.
 
 ```{r}
 #| label: setup
 
+pak::pak(c(
+  "tidyverse",
+  "here",
+  "nycflights13"
+))
+
 library(tidyverse)
 library(palmerpenguins)
+```
+
+The `tidyverse` is a collection of R packages designed for data science. **dplyr** is the tidyverse package focused on data manipulation.
+
+Some common dplyr functions are:
+
+| Function                     | Main purpose                               |
+|------------------------------|--------------------------------------------|
+| `filter()`                   | Keep rows that meet conditions             |
+| `select()`                   | Keep or remove columns                     |
+| `relocate()`                 | Move columns                               |
+| `rename()`                   | Rename columns                             |
+| `mutate()`                   | Create or modify columns                   |
+| `group_by()` + `summarise()` | Calculate summaries by groups              |
+| `across()`                   | Apply a function to multiple columns       |
+| `count()`                    | Count observations by groups               |
+| `case_when()`                | Create values based on multiple conditions |
+
+## Meet the data
+
+The `penguins` data contain measurements from three penguin species in the Palmer Archipelago, Antarctica: Adelie, Chinstrap, and Gentoo penguins.
+
+Take a first look at the data.
+
+```{r}
+penguins
+```
+
+```{r}
+glimpse(penguins)
+```
+
+The data contain eight variables:
+
+- `species`: penguin species
+- `island`: island where the penguin was observed
+- `bill_length_mm`: bill length in millimeters
+- `bill_depth_mm`: bill depth in millimeters
+- `flipper_length_mm`: flipper length in millimeters
+- `body_mass_g`: body mass in grams
+- `sex`: sex of the penguin
+- `year`: study year
+
+The data are already **tidy**: each variable is a column, each observation is a row, and each value occupies one cell.
+
+Let's look at the first 10 rows. Recall that the pipe |> can be read as "and then." Here, we start with penguins and then pass it to `slice_head()`.
+
+```{r}
+penguins |>
+  slice_head(n = 10)
+```
+
+# `filter()`: keep rows
+
+Use `filter()` when you want to keep observations that satisfy one or more conditions.
+
+The general structure is:
+
+``` r
+data |>
+  filter(condition)
+```
+
+## Filtering categorical variables
+
+Keep only Chinstrap penguins. Note that we use `==` and not `=`. While you would normally assign the filtered dataframe to a new object (i.e., `penguins <- pengions |>...`) we will not do this so we can keep working with the same dataframe (or we'd have to rename the object something different each time).
+
+```{r}
+penguins |>
+  filter(species == "Chinstrap")
+```
+
+To keep rows matching **either** of two categories, use `|` for OR.
+
+```{r}
+penguins |>
+  filter(species == "Chinstrap" | species == "Gentoo")
+```
+
+When checking several possible values of the same variable, `%in%` is often easier to read.
+
+```{r}
+penguins |>
+  filter(species %in% c("Chinstrap", "Gentoo"))
+```
+
+::: callout-warning
+`species == c("Chinstrap", "Gentoo")` does **not** mean "Chinstrap or Gentoo." For that task, use `%in%`.
+:::
+
+Before continuing, let's briefly review the pipe.
+
+## The pipe operator
+
+The R pipe, `|>`, can be read as "and then." Before R had a "native" pipe, the `{tidyverse}`commonly used `%>%`. You may still see `%>%` in older code; for the purposes of this course, you can generally read it the same way as `|>`.
+
+``` r
+penguins |>
+  filter(species == "Chinstrap")
+```
+
+This means: start with `penguins`, **and then** filter the rows of observations with Chinstrap penguins.
+
+## Combining conditions
+
+Keep Adelie penguins observed on Dream Island. Note that here, we want both conditions and they are in different columns. You can do this by using a `,` (or `&`).
+
+```{r}
+penguins |>
+  filter(species == "Adelie", island == "Dream")
+```
+
+Again - a comma inside `filter()` means that **both** conditions must be true. You can also write the same logic with `&`.
+
+```{r}
+penguins |>
+  filter(species == "Adelie" & island == "Dream")
+```
+
+## Filtering numeric variables
+
+Lets go over the common comparison operators that you will often see and use:
+
+| Operator | Meaning                  |
+|----------|--------------------------|
+| `==`     | equal to                 |
+| `!=`     | not equal to             |
+| `>`      | greater than             |
+| `<`      | less than                |
+| `>=`     | greater than or equal to |
+| `<=`     | less than or equal to    |
+
+You can use these within `filter()`. For example, keep penguins with flippers longer than 200 mm.
+
+```{r}
+penguins |>
+  filter(flipper_length_mm > 200)
+```
+
+Keep penguins weighing 2900 g or less.
+
+```{r}
+penguins |>
+  filter(body_mass_g <= 2900)
+```
+
+You can even combine categorical and numeric conditions. For example, keep penguins in the Adelie species that have a bill length of greater than 40 mm.
+
+```{r}
+penguins |>
+  filter(species == "Adelie", bill_length_mm > 40)
+```
+
+## Excluding rows
+
+Use `!=` when you want to keep rows that **do not** match a value. For example, the following keeps all penguin species with the exception of Chinstrap.
+
+```{r}
+penguins |>
+  filter(species != "Chinstrap")
+```
+
+## Practice: `filter()`
+
+### Practice 1
+
+Keep Gentoo penguins with bill depth greater than or equal to 15.5 mm.
+
+```{r}
+# Write your code here
+```
+
+::: {.callout-tip collapse="true"}
+## Solution
+
+```{r}
+penguins |>
+  filter(species == "Gentoo", bill_depth_mm >= 15.5)
+```
+:::
+
+### Practice 2
+
+Keep male penguins recorded on either Dream or Biscoe Island.
+
+```{r}
+# Write your code here
+```
+
+::: {.callout-tip collapse="true"}
+## Solution
+
+```{r}
+penguins |>
+  filter(
+    island %in% c("Dream", "Biscoe"),
+    sex == "male"
+  )
+```
+:::
+
+### Practice 3
+
+Keep female Adelie penguins with bill length less than 35 mm.
+
+```{r}
+# Write your code here
+```
+
+::: {.callout-tip collapse="true"}
+## Solution
+
+```{r}
+penguins |>
+  filter(
+    sex == "female",
+    species == "Adelie",
+    bill_length_mm < 35
+  )
+```
+:::
+
+### Practice 4
+
+Keep female Chinstrap penguins observed on Dream or Torgersen Island.
+
+```{r}
+# Write your code here
+```
+
+::: {.callout-tip collapse="true"}
+## Solution
+
+```{r}
+penguins |>
+  filter(
+    sex == "female",
+    species == "Chinstrap",
+    island %in% c("Dream", "Torgersen")
+  )
+```
+:::
+
+### Practice 5
+
+Keep penguins that are Gentoo **or** have body mass greater than 4500 g.
+
+```{r}
+# Write your code here
+```
+
+::: {.callout-tip collapse="true"}
+## Solution
+
+```{r}
+penguins |>
+  filter(species == "Gentoo" | body_mass_g > 4500)
+```
+:::
+
+# `select()`: keep or remove columns
+
+Use `select()` to choose variables by name.
+
+## Selecting individual columns
+
+```{r}
+penguins |>
+  select(year, island, species)
+```
+
+```{r}
+penguins |>
+  select(species, body_mass_g)
+```
+
+The order of variables inside `select()` also controls their order in the output.
+
+## Selecting a range of columns
+
+Use `:` to select consecutive variables.This selects `species`, `body_mass_g`, and every column between them in the current column order.
+
+```{r}
+penguins |>
+  select(species:body_mass_g)
+```
+
+You can combine a range of columns with additional columns that you want to select.
+
+```{r}
+penguins |>
+  select(species:bill_depth_mm, year)
+```
+
+## Excluding columns
+
+Use `-` to remove one column.
+
+```{r}
+penguins |>
+  select(-island)
+```
+
+Exclude a consecutive range.
+
+```{r}
+penguins |>
+  select(!(island:bill_depth_mm))
+```
+
+You can also use the `-`
+
+```{r}
+penguins |>
+  select(-(island:bill_depth_mm))
+```
+
+Exclude several non-consecutive variables.
+
+```{r}
+penguins |>
+  select(!c(species, flipper_length_mm, year))
+```
+
+or, with the `-`:
+
+```{r}
+penguins |>
+  select(-c(species, flipper_length_mm, year))
+```
+
+## Selection helpers
+
+Selection helpers are useful when variable names follow patterns.
+
+Select columns starting with `bill`.
+
+```{r}
+penguins |>
+  select(starts_with("bill"))
+```
+
+Select columns ending with `mm`.
+
+```{r}
+penguins |>
+  select(ends_with("mm"))
+```
+
+Select columns containing `length`.
+
+```{r}
+penguins |>
+  select(contains("length"))
+```
+
+You can combine selection rules. The `|` operator selects columns that match either rule. This selects `bill_length_mm`, `bill_depth_mm`, and `flipper_length_mm`.
+
+```{r}
+penguins |>
+  select(contains("length") | starts_with("bill"))
+```
+
+You can also use `&` to select columns that match both rules. This selects only `bill_length_mm`:
+
+```{r}
+penguins |>
+  select(contains("length") & starts_with("bill"))
+```
+
+### Be careful with commas
+
+A comma behaves differently inside `filter()` and `select()`.
+
+In `filter()`, multiple conditions separated by commas are combined with AND:
+
+```{r}
+penguins |> filter(species == "Adelie", island == "Dream")
+```
+
+This is equivalent to:
+
+```{r}
+penguins |> filter(species == "Adelie" & island == "Dream")
+```
+
+Both keep penguins that are Adelie **AND** were observed on Dream Island.
+
+In `select()`, however, a comma combines the columns returned by each selection:
+
+```{r}
+penguins |>
+  select(contains("length"), starts_with("bill"))
+```
+
+This selects columns that match **either** rule: `bill_length_mm`, `flipper_length_mm`, and `bill_depth_mm`.
+
+That is different from:
+
+```{r}
+penguins |>
+  select(contains("length") & starts_with("bill"))
+```
+
+which selects only columns that match both rules: `bill_length_mm`.
+
+So remember: in `filter()`, comma-separated conditions are combined with **AND**. In `select()`, comma-separated selections are combined together, like **OR**. In `select()`, `&` means a column must match **both** selection rules.
+
+So `,` and `&` are interchangeable in `filter()`, but not in `select()`.
+
+## Combining `filter()` and `select()`
+
+Sometime you want to filter observations (rows), then variables (columns). For example, keep Gentoo penguins, then retain only island, sex, and body mass:
+
+```{r}
+penguins |>
+  filter(species == "Gentoo") |>
+  select(island, sex, body_mass_g)
+```
+
+Keep male penguins with flippers longer than 200 mm, then retain variables ending in `mm`.
+
+```{r}
+penguins |>
+  filter(sex == "male", flipper_length_mm > 200) |>
+  select(ends_with("mm"))
+```
+
+## Practice: `select()`
+
+### Practice 1
+
+Keep only `body_mass_g`.
+
+```{r}
+# Write your code here
+```
+
+::: {.callout-tip collapse="true"}
+## Solution
+
+```{r}
+penguins |>
+  select(body_mass_g)
+```
+:::
+
+### Practice 2
+
+Keep all variables from `bill_length_mm` through `body_mass_g`, plus `year`.
+
+```{r}
+# Write your code here
+```
+
+::: {.callout-tip collapse="true"}
+## Solution
+
+```{r}
+penguins |>
+  select(bill_length_mm:body_mass_g, year)
+```
+:::
+
+### Practice 3
+
+Keep all variables except `island`.
+
+```{r}
+# Write your code here
+```
+
+::: {.callout-tip collapse="true"}
+## Solution
+
+```{r}
+penguins |>
+  select(-island)
+```
+:::
+
+### Practice 4
+
+Keep all variables except `species`, `sex`, and `year`.
+
+```{r}
+# Write your code here
+```
+
+::: {.callout-tip collapse="true"}
+## Solution
+
+```{r}
+penguins |>
+  select(!c(species, sex, year))
+
+penguins |>
+  select(-c(species, sex, year))
+```
+:::
+
+### Practice 5
+
+Keep `species` plus every variable ending in `mm`.
+
+```{r}
+# Write your code here
+```
+
+::: {.callout-tip collapse="true"}
+## Solution
+
+```{r}
+penguins |>
+  select(species, ends_with("mm"))
+```
+:::
+
+### Practice 6
+
+Keep variables containing `bill` **or** ending in `mm`.
+
+```{r}
+# Write your code here
+```
+
+::: {.callout-tip collapse="true"}
+## Solution
+
+```{r}
+penguins |>
+  select(contains("bill") | ends_with("mm"))
+```
+:::
+
+### Practice 7
+
+In one pipeline:
+
+1.  Keep female penguins observed on Dream Island.
+2.  Keep `species` and any variable beginning with `bill`.
+
+```{r}
+# Write your code here
+```
+
+::: {.callout-tip collapse="true"}
+## Solution
+
+```{r}
+penguins |>
+  filter(sex == "female", island == "Dream") |>
+  select(species, starts_with("bill"))
+```
+:::
+
+# `relocate()`: move columns
+
+`relocate()` changes column order without dropping variables.
+
+If you provide only a variable name, that variable moves to the front. For example, `year` will now be the first column.
+
+```{r}
+penguins |>
+  relocate(year)
+```
+
+Use `.after` to place a variable after another variable. Here, `flipper_length` will immediately follow `island`.
+
+```{r}
+penguins |>
+  relocate(flipper_length_mm, .after = island)
+```
+
+Use `.before` to place a variable before another variable. `bill_length_mm` will come right before `year`.
+
+```{r}
+penguins |>
+  relocate(bill_length_mm, .before = year)
+```
+
+You can also use selection helpers such as `where()`. The code below places all of the `numeric` columns after the columns that are `factors`.
+
+```{r}
+penguins |>
+  relocate(where(is.numeric), .after = where(is.factor))
+```
+
+## Practice: `relocate()`
+
+### Practice 1
+
+Move `species` so that it appears immediately before `sex`.
+
+```{r}
+# Write your code here
+```
+
+::: {.callout-tip collapse="true"}
+## Solution
+
+```{r}
+penguins |>
+  relocate(species, .before = sex)
+```
+:::
+
+### Practice 2
+
+Move `bill_length_mm` to the first column.
+
+```{r}
+# Write your code here
+```
+
+::: {.callout-tip collapse="true"}
+## Solution
+
+```{r}
+penguins |>
+  relocate(bill_length_mm)
+```
+:::
+
+### Practice 3
+
+Move factor variables so they appear after integer variables.
+
+```{r}
+# Write your code here
+```
+
+::: {.callout-tip collapse="true"}
+## Solution
+
+```{r}
+penguins |>
+  relocate(where(is.factor), .after = where(is.integer))
+```
+:::
+
+# `rename()`: rename columns
+
+Use `rename()` to change variable names. The syntax is:
+
+``` r
+data |>
+  rename(new_name = old_name)
+```
+
+Rename `island` to `palmer_island`.
+
+```{r}
+penguins |>
+  rename(palmer_island = island)
+```
+
+Rename more than one variable at the same time.
+
+```{r}
+penguins |>
+  rename(
+    study_yr = year,
+    mass = body_mass_g
+  )
+```
+
+## `rename_with()`
+
+`rename_with()` applies a function to selected column names.
+
+Convert every column name to uppercase.
+
+```{r}
+penguins |>
+  rename_with(toupper)
+```
+
+Convert only names ending in `mm` to uppercase.
+
+```{r}
+penguins |>
+  rename_with(toupper, ends_with("mm"))
+```
+
+## Practice: `rename()`
+
+### Practice 1
+
+Rename `flipper_length_mm` to `flipper_mm`.
+
+```{r}
+# Write your code here
+```
+
+::: {.callout-tip collapse="true"}
+## Solution
+
+```{r}
+penguins |>
+  rename(flipper_mm = flipper_length_mm)
+```
+:::
+
+### Practice 2
+
+Rename `island` to `island_name` and `species` to `penguin_spp`.
+
+```{r}
+# Write your code here
+```
+
+::: {.callout-tip collapse="true"}
+## Solution
+
+```{r}
+penguins |>
+  rename(
+    island_name = island,
+    penguin_spp = species
+  )
+```
+:::
+
+### Practice 3
+
+Convert the names of variables that begin with `bill` to uppercase.
+
+```{r}
+# Write your code here
+```
+
+::: {.callout-tip collapse="true"}
+## Solution
+
+```{r}
+penguins |>
+  rename_with(toupper, starts_with("bill"))
+```
+:::
+
+# `mutate()`: create or modify columns
+
+Use `mutate()` to add new variables or modify existing variables.
+
+``` r
+data |>
+  mutate(new_variable = expression)
+```
+
+## Creating a new variable
+
+Convert body mass from grams to kilograms.
+
+```{r}
+penguins |>
+  mutate(body_mass_kg = body_mass_g / 1000)
+```
+
+Calculate the ratio of bill length to bill depth.
+
+```{r}
+penguins |>
+  mutate(bill_ratio = bill_length_mm / bill_depth_mm)
+```
+
+## Creating several variables
+
+```{r}
+penguins |>
+  mutate(
+    bill_ratio = bill_length_mm / bill_depth_mm,
+    body_mass_kg = body_mass_g / 1000,
+    flipper_length_m = flipper_length_mm / 1000
+  )
+```
+
+Create a sequential record number.
+
+```{r}
+penguins |>
+  mutate(record_number = row_number())
+```
+
+## Modifying an existing variable
+
+If the name on the left side of `=` already exists, `mutate()` replaces that variable. The code below changes `island` to a character.
+
+```{r}
+penguins |>
+  mutate(island = as.character(island))
+```
+
+::: callout-warning
+Overwriting a variable can be useful, but it also removes the original version. When learning or exploring, creating a new variable is often safer.
+:::
+
+`mutate()` can also call functions from other packages. For example, `forcats::fct_relevel()` changes the order of factor levels. You can check out the `forcats` package by running `?forcats` (or `??forcats` if the package is not installed.
+
+```{r}
+penguins |>
+  mutate(
+    island = forcats::fct_relevel(
+      island,
+      "Torgersen", "Biscoe", "Dream"
+    )
+  )
+```
+
+## Practice: `mutate()`
+
+### Practice 1
+
+Create `flipper_m`, with flipper length converted from millimeters to meters.
+
+```{r}
+# Write your code here
+```
+
+::: {.callout-tip collapse="true"}
+## Solution
+
+```{r}
+penguins |>
+  mutate(flipper_m = flipper_length_mm / 1000)
+```
+:::
+
+### Practice 2
+
+Create `year_fct`, containing `year` converted to a factor.
+
+```{r}
+# Write your code here
+```
+
+::: {.callout-tip collapse="true"}
+## Solution
+
+```{r}
+penguins |>
+  mutate(year_fct = as.factor(year))
+```
+:::
+
+### Practice 3
+
+Create `mass_lb`, converting body mass from grams to pounds using 1 g = 0.0022 lb.
+
+```{r}
+# Write your code here
+```
+
+::: {.callout-tip collapse="true"}
+## Solution
+
+```{r}
+penguins |>
+  mutate(mass_lb = body_mass_g * 0.0022)
+```
+:::
+
+### Practice 4
+
+Within one `mutate()` call:
+
+1.  Convert `species` to character.
+2.  Create `flipper_cm` from `flipper_length_mm`.
+3.  Convert `island` values to lowercase.
+
+```{r}
+# Write your code here
+```
+
+::: {.callout-tip collapse="true"}
+## Solution
+
+```{r}
+penguins |>
+  mutate(
+    species = as.character(species),
+    flipper_cm = flipper_length_mm / 10,
+    island = tolower(island)
+  )
+```
+:::
+
+# `group_by()` + `summarise()`: summaries by group
+
+Often, you will want to summarize data so to find out certain things about your data. For the penguins example, we may want to know:
+
+What is the mean body mass for each species?
+How many penguins were observed on each island?
+What is the mean flipper length for males and females within each species?
+
+`group_by()` tells dplyr which groups should be treated separately. `summarise()` then calculates one or more summary statistics for each group.
+
+Without grouping, `summarise()` returns an overall summary. If we run the code below, we get a mean mass for all penguins. But that is not very useful. 
+
+```{r}
+penguins |>
+  summarise(
+    mass_mean = mean(body_mass_g, na.rm = TRUE)
+  )
+```
+
+With grouping, the same calculation is performed separately for each group.
+
+## One summary by one group
+
+Calculate mean body mass by species.
+
+```{r}
+penguins |>
+  group_by(species) |>
+  summarise(
+    mass_mean = mean(body_mass_g, na.rm = TRUE)
+  )
+```
+
+`na.rm = TRUE` tells `mean()` to ignore missing values when calculating the mean.
+
+## Multiple summaries
+
+Calculate mean and standard deviation of body mass by species.
+
+```{r}
+penguins |>
+  group_by(species) |>
+  summarise(
+    mass_mean = mean(body_mass_g, na.rm = TRUE),
+    mass_sd = sd(body_mass_g, na.rm = TRUE)
+  )
+```
+
+## Multiple grouping variables
+
+Calculate mean and standard deviation of bill length for each species-by-sex combination.
+
+```{r}
+penguins |>
+  group_by(species, sex) |>
+  summarise(
+    bill_length_mean = mean(bill_length_mm, na.rm = TRUE),
+    bill_length_sd = sd(bill_length_mm, na.rm = TRUE),
+    .groups = "drop"
+  )
+```
+
+The `.groups = "drop"` argument makes the returned table ungrouped after the summary is calculated. This is a good idea to do because after summarise(), you often want the resulting table to behave like a regular ungrouped data frame.
+
+If grouping remains, later operations such as mutate(), filter(), or another summarise() may still be carried out separately within those groups, sometimes unintentionally.
+
+## Combine wrangling steps
+
+Here, we want to understand the minimum and maximum flipper length for male Adelie penguins on each island. We will need to use `filter`, `group_by`, and `summarise` to calculate the minimum and maximum flipper length by island for male Adelie penguins. First, we have to filter `species` by `Adelie`, `sex` by `male`. Then we have to `group_by` island. Last, we have to `summarise` the `flipper_length_mm` by its maximum and minimum value using the `max` and `min` functions.
+
+```{r}
+penguins |>
+  filter(species == "Adelie", sex == "male") |>
+  group_by(island) |>
+  summarise(
+    flip_max_length = max(flipper_length_mm, na.rm = TRUE),
+    flip_min_length = min(flipper_length_mm, na.rm = TRUE)
+  )
+```
+
+## Practice: `group_by()` + `summarise()`
+
+### Practice 1
+
+For Chinstrap penguins, calculate minimum and maximum flipper length by island. Name the new variables `flip_min` and `flip_max`.
+
+```{r}
+# Write your code here
+```
+
+::: {.callout-tip collapse="true"}
+## Solution
+
+```{r}
+penguins |>
+  filter(species == "Chinstrap") |>
+  group_by(island) |>
+  summarise(
+    flip_max = max(flipper_length_mm, na.rm = TRUE),
+    flip_min = min(flipper_length_mm, na.rm = TRUE)
+  )
+```
+:::
+
+### Practice 2
+
+What is the mean bill depth and mean bill length for each species and year?
+
+```{r}
+# Write your code here
+```
+
+::: {.callout-tip collapse="true"}
+## Solution
+
+```{r}
+penguins |>
+  group_by(species, year) |>
+  summarise(
+    bill_depth_mean = mean(bill_depth_mm, na.rm = TRUE),
+    bill_length_mean = mean(bill_length_mm, na.rm = TRUE),
+    .groups = "drop"
+  )
+```
+:::
+
+### Practice 3
+
+What is the average bill length-to-depth ratio for each penguin species?
+
+Hint: in one pipeline, you will need to:
+
+1.  Create `bill_ratio` as bill length divided by bill depth.
+2.  Keep only `species` and `bill_ratio`.
+3.  Group by species.
+4.  Calculate the mean bill ratio for each species and call it `bill_ratio_mean`.
+
+```{r}
+# Write your code here
+```
+
+::: {.callout-tip collapse="true"}
+## Solution
+
+```{r}
+penguins |>
+  mutate(bill_ratio = bill_length_mm / bill_depth_mm) |>
+  select(species, bill_ratio) |>
+  group_by(species) |>
+  summarise(
+    bill_ratio_mean = mean(bill_ratio, na.rm = TRUE)
+  )
+```
+:::
+
+---
+title: "Data Wrangling with dplyr"
+subtitle: "Instructor-led tutorial using palmerpenguins"
+author: "Dr. Bigman 
+(with help from [Allison Horst](https://allisonhorst.com/allison-horst))"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    code-copy: true
+    code-fold: false
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+## Overview
+
+Overview
+
+In this tutorial, we will use `{dplyr}` to practice core data-wrangling tasks in R. We will work with the penguins data from the `palmerpenguins` package.
+
+By the end of the tutorial, you should be able to:
+
+use `filter()` to keep observations that meet specified conditions;
+use `select()` to keep or remove variables;
+use `relocate()` to reorder variables without dropping columns;
+use `rename()` and `rename_with()` to change variable names;
+use `mutate()` to create or modify variables;
+combine `group_by()` with `summarise()` to calculate summaries for groups; and
+combine multiple `{dplyr}` functions with the pipe (`|>`) to build data-wrangling workflows.
+
+::: callout-note
+This lesson is an instructor-led adaptation inspired by Allison Horst's *Wrangling penguins: some basic data wrangling in R with dplyr* LearnR tutorial. The structure and explanations here have been rewritten for a classroom Quarto workflow, and current dplyr syntax is used where the package has changed.
+
+Source: <https://allisonhorst.shinyapps.io/dplyr-learnr/>
+:::
+
+## Setup
+
+You will need the `tidyverse`, `palmerpenguins`, and `nycflights13` packages.
+
+```{r}
+#| label: setup
+
+pak::pak(c(
+  "tidyverse",
+  "here",
+  "nycflights13"
+))
+
+library(tidyverse)
+library(palmerpenguins)
+library(nycflights13)
 ```
 
 The `tidyverse` is a collection of R packages designed for data science. **dplyr** is the tidyverse package focused on data manipulation.
@@ -1083,547 +2186,6 @@ penguins |>
   summarise(
     bill_ratio_mean = mean(bill_ratio, na.rm = TRUE)
   )
-```
-:::
-
-# `across()`: apply a function across columns
-
-`across()` is useful when you want to apply the same function to several variables. It is commonly used inside `summarise()` or `mutate()`.
-
-Suppose we want the mean of every measurement variable ending in `mm`, separately by species.
-
-We could write each calculation individually:
-
-```{r}
-penguins |>
-  group_by(species) |>
-  summarise(
-    bill_length_mean = mean(bill_length_mm, na.rm = TRUE),
-    bill_depth_mean = mean(bill_depth_mm, na.rm = TRUE),
-    flipper_length_mean = mean(flipper_length_mm, na.rm = TRUE)
-  )
-```
-
-Or we can use `across()`:
-
-```{r}
-penguins |>
-  group_by(species) |>
-  summarise(
-    across(
-      ends_with("mm"),
-      ~ mean(.x, na.rm = TRUE)
-    )
-  )
-```
-
-We first `group_by` `species` and then take the `mean` **across** all columns that end in `mm`. To do so, we put the `across` and `mean` functions inside `summarise`.
-
-The selection rules inside `across()` use the same "tidyselect" helpers that work in `select()`.
-
-::: callout-note
-Current dplyr syntax places extra function arguments such as `na.rm = TRUE` inside an anonymous function: `~ mean(.x, na.rm = TRUE)`. Older examples may show `across(..., mean, na.rm = TRUE)`.
-:::
-
-## Selecting a range inside `across()`
-
-You can apply the function (i.e., `~ mean(.x, na.rm = TRUE)`) to more than one column at a time. For example, you can find minimum values for a range of measurement variables by using `:`. This code will find the minimum value of each column starting with `bill_depth_mm` and ending with `body_mass_g`, for each species and island.
-
-```{r}
-penguins |>
-  group_by(species, island) |>
-  summarise(
-    across(
-      bill_depth_mm:body_mass_g,
-      ~ min(.x, na.rm = TRUE)
-    ),
-    .groups = "drop"
-  )
-```
-
-## Selecting specific variables
-
-You can also use the `c()` function to select variables (columns) and apply a function to all selected columns at once. This code finds the minimum `bill_length_mm` and `body_mass_g` by species. This is different than the above code, which found the minimum value of columns starting with `bill_depth_mm` and ending with `body_mass_g`.
-
-```{r}
-penguins |>
-  group_by(species) |>
-  summarise(
-    across(
-      c(bill_length_mm, body_mass_g),
-      ~ min(.x, na.rm = TRUE)
-    )
-  )
-```
-
-## Using selection helpers
-
-You can also use the selection helpers you learned about earlier, e.g., `starts_with`, `contains`, and `ends_with`. For example, this code finds the maximum ....
-
-```{r}
-penguins |>
-  group_by(year) |>
-  summarise(
-    across(
-      starts_with("bill"),
-      ~ max(.x, na.rm = TRUE)
-    )
-  )
-```
-
-Other selection helpers include `where()`, `matches()`, `num_range()`, `all_of()`, and `any_of()`. To find out more, you can look these up using the help function (`?`). 
-
-## Controlling output names
-
-Notice that when we summarized across columns in quite a few examples above, the columns came back with the same name as the column being summarized. 
-
-```{r}
-penguins |>
-  group_by(year) |>
-  summarise(
-    across(
-      starts_with("bill"),
-      ~ max(.x, na.rm = TRUE)
-    )
-  )
-```
-
-What are the new column names from the code above?
-
-This could get confusing if you later want to combine them in a new dataframe. 
-
-Use `.names` to describe how newly created variables should be named.
-
-```{r}
-penguins |>
-  group_by(year) |>
-  summarise(
-    across(
-      starts_with("bill"),
-      ~ max(.x, na.rm = TRUE),
-      .names = "max_{.col}"
-    )
-  )
-```
-
-The above code renames the summarized (new) columns with a pattern - `max_` + the column name. 
-
-
-## Applying multiple functions
-
-You can also apply multiple functions at once. Say you wanted to calculate the mean and standard deviation for variables containing length and give the resulting columns new names.
-
-Use `list()` to provide multiple functions to `across()`. Here, we name the functions `avg` and `stdev`.
-
-The `.names` argument controls how the new columns are named. Within `.names`, `{.fn}` is a placeholder for the function name (`avg` or `stdev`) and `{.col}` is a placeholder for the original column name.
-
-Because we specify: `.names = "{.fn}_{.col}"`, `{dplyr}` combines the function name and column name. For example, the mean of `bill_length_mm` will be named `avg_bill_length_mm`, and its standard deviation will be named `stdev_bill_length_mm`.
-
-```{r}
-penguins |>
-  group_by(species) |>
-  summarise(
-    across(
-      contains("length"),
-      list(
-        avg = ~ mean(.x, na.rm = TRUE),
-        stdev = ~ sd(.x, na.rm = TRUE)
-      ),
-      .names = "{.fn}_{.col}"
-    )
-  )
-```
-
-T0 review, inside `.names`:
-
-- `{.col}` means the original variable name.
-- `{.fn}` means the name assigned to the function in the function list.
-
-## Practice: `across()`
-
-### Practice 1
-
-What is the median value of each variable measured in millimeters for all penguins on each island?
-
-Name each resulting variable with the original name followed by `_median`.
-
-```{r}
-# Write your code here
-```
-
-::: {.callout-tip collapse="true"}
-## Solution
-
-```{r}
-penguins |>
-  group_by(island) |>
-  summarise(
-    across(
-      contains("mm"),
-      ~ median(.x, na.rm = TRUE),
-      .names = "{.col}_median"
-    )
-  )
-```
-:::
-
-### Practice 2
-
-For each island, what is the maximum value of every numeric variable for Adelie penguins?
-
-```{r}
-# Write your code here
-```
-
-::: {.callout-tip collapse="true"}
-## Solution
-
-```{r}
-penguins |>
-  filter(species == "Adelie") |>
-  group_by(island) |>
-  summarise(
-    across(
-      where(is.numeric),
-      ~ max(.x, na.rm = TRUE)
-    )
-  )
-```
-:::
-
-### Practice 3
-
-Among penguins not observed on Biscoe Island, what are the average bill length and flipper length for each species?
-
-Try and write this in one pipeline that names the summary variables with their original name followed by `_avg`.
-
-```{r}
-# Write your code here
-```
-
-::: {.callout-tip collapse="true"}
-## Solution
-
-```{r}
-penguins |>
-  filter(island != "Biscoe") |>
-  select(species:body_mass_g) |>
-  group_by(species) |>
-  summarise(
-    across(
-      contains("length"),
-      ~ mean(.x, na.rm = TRUE),
-      .names = "{.col}_avg"
-    )
-  )
-```
-:::
-
-# `count()`: count observations by group
-
-How many observations do we have per species?
-
-To count rows by group, we can combine `group_by()`, `summarise()`, and `n()`.
-
-```{r}
-penguins |>
-  group_by(species) |>
-  summarise(n = n())
-```
-
-For this common task, `count()` is a shortcut.
-
-```{r}
-penguins |>
-  count(species)
-```
-
-## Count by multiple variables
-
-You can also obtain counts for combinations of variables. This code counts the number of observations per species per year:
-
-```{r}
-penguins |>
-  count(species, year)
-```
-
-And here, we obtain the number of observations per island:
-
-```{r}
-penguins |>
-  count(island)
-```
-
-::: callout-note
-`count()` assumes each row represents one observation. If a dataset already contains a variable with frequencies or counts, the `wt =` argument can be used to sum that variable instead.
-
-For example, the following code creates a summarized dataset in which each row represents a species–sex combination and `n_penguins` gives the number of penguins in that group:
-
-```{r}
-penguin_counts <- penguins |>
-  count(species, sex, name = "n_penguins")
-
-penguin_counts
-```
-
-If you instead use `count(species)` without `wt =`, `count()` simply counts the number of rows for each species:
-
-```{r}
-penguin_counts |>
-  count(species)
-```
-
-In `penguin_counts`, each row represents a species–sex combination rather than an individual penguin. Therefore, counting rows tells you how many species–sex groups are present, not how many individual penguins there are.
-
-If you want to know how many individual penguins are represented for each species in a dataset already summarized this way, use `wt = n_penguins`:
-
-```{r}
-penguin_counts |>
-  count(species, wt = n_penguins)
-```
-
-This sums `n_penguins` within each species, giving the total number of penguins represented by those rows.
-
-:::
-
-## Practice: `count()`
-
-### Practice 1
-
-How many observations are there for each island and year for every penguin species?
-
-```{r}
-# Write your code here
-```
-
-::: {.callout-tip collapse="true"}
-## Solution
-
-```{r}
-penguins |>
-  count(species, island, year)
-```
-:::
-
-### Practice 2
-
-How many observations are there for each sex for both Adelie and Gentoo penguins?
-
-```{r}
-# Write your code here
-```
-
-::: {.callout-tip collapse="true"}
-## Solution
-
-```{r}
-penguins |>
-  filter(species %in% c("Adelie", "Gentoo")) |>
-  count(species, sex)
-```
-:::
-
-# `case_when()`: create values from conditions
-
-`case_when()` is useful when a new variable depends on several possible conditions. It is commonly used inside `mutate()`.
-
-The basic pattern is:
-
-``` r
-data |>
-  mutate(
-    new_variable = case_when(
-      condition_1 ~ value_1,
-      condition_2 ~ value_2,
-      .default = default_value
-    )
-  )
-```
-
-Conditions are evaluated from top to bottom, so their order can matter.
-
-## Create body-size categories
-
-Create a new variable called `size_bin` that categorized body mass into distinct bins. This code will create `size_bin` and for any observation where `body_mass_g` > 4500, the value in `size_bin` will be `large`; for any  where `body_mass_g` <= 4500 but > 3000, the value in `size_bin` will be `medium`, and for any observation where `body_mass_g` <= 3000, the value in `size_bin` will be `small`.
-
-```{r}
-penguins |>
-  mutate(
-    size_bin = case_when(
-      body_mass_g > 4500 ~ "large",
-      body_mass_g > 3000 & body_mass_g <= 4500 ~ "medium",
-      body_mass_g <= 3000 ~ "small",
-      .default = NA_character_
-    )
-  )
-```
-
-`.default = NA_character_` tells `case_when()` what value to use when none of the conditions are matched. 
-
-You do not really need this step because any row with a `body_mass_g` value of `NA` will yield a `size_bin` value of NA. Using `.default = NA_character_` instead makes that `NA` a character. 
-
-I don't often use this feature but wanted to alert you to it. 
-
-You can also simplify the above code because each condition is checked sequentially. Thus, the middle condition can be simplified:
-
-```{r}
-penguins |>
-  mutate(
-    size_bin = case_when(
-      body_mass_g > 4500 ~ "large",
-      body_mass_g > 3000 ~ "medium",
-      body_mass_g <= 3000 ~ "small",
-      .default = NA_character_
-    )
-  )
-```
-
-I think it is best to be explicit and write the first option, with or without the `.default = NA_character_`.
-
-## Combine `case_when()` with other dplyr verbs
-
-For Adelie penguins, bin flipper lengths into small or large depending on whether they are less than or greater than 200 mm (for each observation). 
-
-```{r}
-penguins |>
-  select(species, year, flipper_length_mm) |>
-  filter(species == "Adelie") |>
-  mutate(
-    flipper_bin = case_when(
-      flipper_length_mm < 200 ~ "small",
-      flipper_length_mm >= 200 ~ "large"
-      )
-  )
-```
-
-## Practice: `case_when()`
-
-### Practice 1
-
-Create a variable called `study_year` where:
-
-- 2007 becomes `"Year 1"`
-- 2008 becomes `"Year 2"`
-- 2009 becomes `"Year 3"`
-
-```{r}
-# Write your code here
-```
-
-::: {.callout-tip collapse="true"}
-## Solution
-
-```{r}
-penguins |>
-  mutate(
-    study_year = case_when(
-      year == 2007 ~ "Year 1",
-      year == 2008 ~ "Year 2",
-      year == 2009 ~ "Year 3",
-      .default = NA_character_
-    )
-  )
-```
-:::
-
-### Practice 2
-
-How would you wrangle the data frame to ask this question: among Chinstrap penguins, how does flipper length relative to body mass vary, and which penguins have relatively high versus low flipper-length-to-body-mass ratios?
-
-Hint:
-
-1.  Keep only Chinstrap penguins.
-2.  Keep `flipper_length_mm` and `body_mass_g`.
-3.  Create `fm_ratio` as flipper length divided by body mass.
-4.  Create `ratio_bin` that is:
-    - `"high"` when `fm_ratio >= 0.05`
-    - `"low"` when `fm_ratio < 0.05`
-    - `"no record"` otherwise
-
-```{r}
-# Write your code here
-```
-
-::: {.callout-tip collapse="true"}
-## Solution
-
-```{r}
-penguins |>
-  filter(species == "Chinstrap") |>
-  select(flipper_length_mm, body_mass_g) |>
-  mutate(
-    fm_ratio = flipper_length_mm / body_mass_g,
-    ratio_bin = case_when(
-      fm_ratio >= 0.05 ~ "high",
-      fm_ratio < 0.05 ~ "low",
-      .default = "no record"
-    )
-  )
-```
-:::
-
-# Putting it all together
-
-A typical dplyr workflow combines several verbs rather than using one function in isolation.
-
-For example, suppose we want to compare average body size among female penguins by species and island.
-
-```{r}
-penguins |>
-  filter(sex == "female") |>
-  mutate(body_mass_kg = body_mass_g / 1000) |>
-  group_by(species, island) |>
-  summarise(
-    n = n(),
-    mean_body_mass_kg = mean(body_mass_kg, na.rm = TRUE),
-    sd_body_mass_kg = sd(body_mass_kg, na.rm = TRUE),
-    .groups = "drop"
-  ) |>
-  relocate(n, .after = island)
-```
-
-When reading a pipeline, read from top to bottom:
-
-1.  start with the data;
-2.  keep the observations you need;
-3.  create or modify variables;
-4.  define groups;
-5.  calculate summaries; and
-6.  arrange the output variables for readability.
-
-## Final practice
-
-How would you wrangle the data to determine, among penguins observed in 2008 and 2009 with known sex, how many males and females of each species fall into small (< 4.5 kg) versus large (≥ 4.5 kg) body-mass categories?
-
-Hint:
-
-1.  Keep observations from 2008 and 2009.
-2.  Exclude observations with missing sex.
-3.  Create body mass in kilograms.
-4.  Create a body-mass category:
-    - `"large"` for body mass at least 4.5 kg
-    - `"small"` otherwise
-5.  Count penguins by species, sex, and body-mass category.
-
-```{r}
-# Write your code here
-```
-
-::: {.callout-tip collapse="true"}
-## Solution
-
-```{r}
-penguins |>
-  filter(year %in% c(2008, 2009), !is.na(sex)) |>
-  mutate(
-    body_mass_kg = body_mass_g / 1000,
-    mass_category = case_when(
-      body_mass_kg >= 4.5 ~ "large",
-      body_mass_kg < 4.5 ~ "small",
-      .default = NA_character_
-    )
-  ) |>
-  count(species, sex, mass_category)
 ```
 :::
 
