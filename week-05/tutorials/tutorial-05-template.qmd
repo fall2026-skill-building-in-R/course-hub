@@ -11,16 +11,7 @@ In this tutorial, we will build on the core data-wrangling skills from last week
 
 By the end of the tutorial, you should be able to:
 
-use `across()` to apply the same operation to multiple variables;
-use `count()` to quickly count observations by one or more groups;
-use `case_when()` to create variables from multiple logical conditions;
-understand primary and foreign keys and use joins, particularly `left_join()`, to combine related data frames;
-use basic functions from stringr to clean and manipulate character strings;
-use basic functions from lubridate to create, convert, and extract information from dates and date-times;
-use `round()` and distinguish between `log()` and `log10()`;
-understand factors and control the order of factor levels;
-use basic regular expressions to identify and extract patterns in character strings; and
-combine these tools with dplyr functions to build more complex data-wrangling workflows.
+use `across()` to apply the same operation to multiple variables; use `count()` to quickly count observations by one or more groups; use `case_when()` to create variables from multiple logical conditions; understand primary and foreign keys and use joins, particularly `left_join()`, to combine related data frames; use basic functions from stringr to clean and manipulate character strings; use basic functions from lubridate to create, convert, and extract information from dates and date-times; use `round()` and distinguish between `log()` and `log10()`; understand factors and control the order of factor levels; use basic regular expressions to identify and extract patterns in character strings; and combine these tools with dplyr functions to build more complex data-wrangling workflows.
 
 # Setup
 
@@ -29,7 +20,6 @@ library(tidyverse)
 library(palmerpenguins)
 library(nycflights13)
 ```
-
 
 # `across()`: apply a function across columns
 
@@ -116,11 +106,11 @@ penguins |>
   )
 ```
 
-Other selection helpers include `where()`, `matches()`, `num_range()`, `all_of()`, and `any_of()`. To find out more, you can look these up using the help function (`?`). 
+Other selection helpers include `where()`, `matches()`, `num_range()`, `all_of()`, and `any_of()`. To find out more, you can look these up using the help function (`?`).
 
 ## Controlling output names
 
-Notice that when we summarized across columns in quite a few examples above, the columns came back with the same name as the column being summarized. 
+Notice that when we summarized across columns in quite a few examples above, the columns came back with the same name as the column being summarized.
 
 ```{r}
 penguins |>
@@ -135,7 +125,7 @@ penguins |>
 
 What are the new column names from the code above?
 
-This could get confusing if you later want to combine them in a new dataframe. 
+This could get confusing if you later want to combine them in a new dataframe.
 
 Use `.names` to describe how newly created variables should be named.
 
@@ -151,8 +141,7 @@ penguins |>
   )
 ```
 
-The above code renames the summarized (new) columns with a pattern - `max_` + the column name. 
-
+The above code renames the summarized (new) columns with a pattern - `max_` + the column name.
 
 ## Applying multiple functions
 
@@ -328,7 +317,6 @@ penguin_counts |>
 ```
 
 This sums `n_penguins` within each species, giving the total number of penguins represented by those rows.
-
 :::
 
 ## Practice: `count()`
@@ -389,7 +377,7 @@ Conditions are evaluated from top to bottom, so their order can matter.
 
 ## Create body-size categories
 
-Create a new variable called `size_bin` that categorized body mass into distinct bins. This code will create `size_bin` and for any observation where `body_mass_g` > 4500, the value in `size_bin` will be `large`; for any  where `body_mass_g` <= 4500 but > 3000, the value in `size_bin` will be `medium`, and for any observation where `body_mass_g` <= 3000, the value in `size_bin` will be `small`.
+Create a new variable called `size_bin` that categorized body mass into distinct bins. This code will create `size_bin` and for any observation where `body_mass_g` \> 4500, the value in `size_bin` will be `large`; for any where `body_mass_g` \<= 4500 but \> 3000, the value in `size_bin` will be `medium`, and for any observation where `body_mass_g` \<= 3000, the value in `size_bin` will be `small`.
 
 ```{r}
 penguins |>
@@ -403,11 +391,11 @@ penguins |>
   )
 ```
 
-`.default = NA_character_` tells `case_when()` what value to use when none of the conditions are matched. 
+`.default = NA_character_` tells `case_when()` what value to use when none of the conditions are matched.
 
-You do not really need this step because any row with a `body_mass_g` value of `NA` will yield a `size_bin` value of NA. Using `.default = NA_character_` instead makes that `NA` a character. 
+You do not really need this step because any row with a `body_mass_g` value of `NA` will yield a `size_bin` value of NA. Using `.default = NA_character_` instead makes that `NA` a character.
 
-I don't often use this feature but wanted to alert you to it. 
+I don't often use this feature but wanted to alert you to it.
 
 You can also simplify the above code because each condition is checked sequentially. Thus, the middle condition can be simplified:
 
@@ -427,7 +415,7 @@ I think it is best to be explicit and write the first option, with or without th
 
 ## Combine `case_when()` with other dplyr verbs
 
-For Adelie penguins, bin flipper lengths into small or large depending on whether they are less than or greater than 200 mm (for each observation). 
+For Adelie penguins, bin flipper lengths into small or large depending on whether they are less than or greater than 200 mm (for each observation).
 
 ```{r}
 penguins |>
@@ -507,10 +495,9 @@ penguins |>
 ```
 :::
 
+# Joins
 
-# Joins 
-
-There are two main types of joins: mutation joins and filtering joins. 
+There are two main types of joins: mutation joins and filtering joins.
 
 Mutating joins add new variables to one data frame from matching observations in another.
 
@@ -521,9 +508,10 @@ For this section, we will be working with `nycflights13` [a compilation of datas
 To understand joins, you need to first understand how two tables can be connected through a pair of keys, within each table. In this section, you’ll learn about the two types of key and see examples of both in the datasets of the nycflights13 package. You’ll also learn how to check that your keys are valid, and what to do if your table lacks a key.
 
 ### Primary and foreign keys
-Every join involves a pair of keys: a primary key and a foreign key. A primary key is a variable or set of variables that uniquely identifies each observation. When more than one variable is needed, the key is called a compound key. 
 
-Let's look at a few datasets in the `nycflights` package. 
+Every join involves a pair of keys: a primary key and a foreign key. A primary key is a variable or set of variables that uniquely identifies each observation. When more than one variable is needed, the key is called a compound key.
+
+Let's look at a few datasets in the `nycflights` package.
 
 `airlines` records two pieces of data about each airline: its carrier code and its full name. You can identify an airline with its two letter carrier code, making `carrier` the primary key.
 
@@ -545,7 +533,7 @@ weather
 glimpse(weather)
 ```
 
-Let's look at `flights`, which is the main data frame in `nycflights13` that contains one row for each flight that departed from NYC (either JFK, LGA, or EWR) in 2013. The other data frames are metadata that provide additional information about airlines, airports, planes, weather, etc. 
+Let's look at `flights`, which is the main data frame in `nycflights13` that contains one row for each flight that departed from NYC (either JFK, LGA, or EWR) in 2013. The other data frames are metadata that provide additional information about airlines, airports, planes, weather, etc.
 
 ```{r}
 flights
@@ -557,11 +545,7 @@ nrow(flights)
 
 Now we can use foreign keys to match information from these other data frames to flights so we can learn more about each flight. A foreign key is a variable (or set of variables) that corresponds to a primary key in another table. For example:
 
-`flights$tailnum` is a foreign key that corresponds to the primary key `planes$tailnum`.
-`flights$carrier` is a foreign key that corresponds to the primary key `airlines$carrier`.
-`flights$origin` is a foreign key that corresponds to the primary key `airports$faa`.
-`flights$dest` is a foreign key that corresponds to the primary key `airports$faa`.
-(`flights$origin`, `flights$time_hour`) is a compound foreign key that corresponds to the compound primary key (`weather$origin`, `weather$time_hour`).
+`flights$tailnum` is a foreign key that corresponds to the primary key `planes$tailnum`. `flights$carrier` is a foreign key that corresponds to the primary key `airlines$carrier`. `flights$origin` is a foreign key that corresponds to the primary key `airports$faa`. `flights$dest` is a foreign key that corresponds to the primary key `airports$faa`. (`flights$origin`, `flights$time_hour`) is a compound foreign key that corresponds to the compound primary key (`weather$origin`, `weather$time_hour`).
 
 Let's start with a mutating join. A mutating join allows you to combine variables from two data frames: it first matches observations by their keys, then copies across variables from one data frame to the other. Like `mutate()`, the join functions add variables to the right, so if your dataset has many variables, you won’t see the new ones. For these examples, we’ll make it easier to see what’s going on by creating a narrower dataset with just six variables:
 
@@ -626,7 +610,9 @@ flights2 |>
   distinct(dest)
 ```
 
-Or we can find which `tailnums` are missing from `planes`:
+`distinct()` keeps only unique rows or unique values of selected variables. Above, we used it so each unmatched `tailnum` appears only once.
+
+We can also find which `tailnums` are missing from `planes`:
 
 ```{r}
 flights2 |>
@@ -634,22 +620,18 @@ flights2 |>
   distinct(tailnum)
 ```
 
-There is A LOT more to know about joins but now you have an introduction. For more practice and information, see: 
-1. [The full R for Data Science Chapter](https://r4ds.hadley.nz/joins.html#introduction)
-2. [dplyr vignette](https://dplyr.tidyverse.org/articles/two-table.html)
-3. [R doumentation for mutating joins](https://dplyr.tidyverse.org/reference/mutate-joins.html)
-4. [R documentation for filtering joins](https://dplyr.tidyverse.org/reference/filter-joins.html)
+There is A LOT more to know about joins but now you have an introduction. For more practice and information, see: 1. [The full R for Data Science Chapter](https://r4ds.hadley.nz/joins.html#introduction) 2. [dplyr vignette](https://dplyr.tidyverse.org/articles/two-table.html) 3. [R doumentation for mutating joins](https://dplyr.tidyverse.org/reference/mutate-joins.html) 4. [R documentation for filtering joins](https://dplyr.tidyverse.org/reference/filter-joins.html)
 
 # Strings
 
-In R, a string is text. Strings are stored as character values and are usually written inside quotation marks. The `{tidyverse}` has a package called `{stringr}` that makes working with strings easier and more consistent. There is a lot to learn here and we will just touch on the basics. For more information, check out the [package documentation](https://stringr.tidyverse.org/articles/stringr.html). 
+In R, a string is text. Strings are stored as character values and are usually written inside quotation marks. The `{tidyverse}` has a package called `{stringr}` that makes working with strings easier and more consistent. There is a lot to learn here and we will just touch on the basics. For more information, check out the [package documentation](https://stringr.tidyverse.org/articles/stringr.html).
 
 There are four main families of functions in `{stringr}`:
 
-1. Character manipulation: these functions allow you to manipulate individual characters within the strings in character vectors.
-2. Whitespace tools to add, remove, and manipulate whitespace.
-3. Locale sensitive operations whose operations will vary from locale to locale.
-4. Pattern matching functions. These recognise four engines of pattern description. The most common is regular expressions, but there are three other tools.
+1.  Character manipulation: these functions allow you to manipulate individual characters within the strings in character vectors.
+2.  Whitespace tools to add, remove, and manipulate whitespace.
+3.  Locale sensitive operations whose operations will vary from locale to locale.
+4.  Pattern matching functions. These recognise four engines of pattern description. The most common is regular expressions, but there are three other tools.
 
 Let's go over the most common uses. For this, we will work with a vector of 3 strings:
 
@@ -683,7 +665,7 @@ We can ask if the vector of strings contains a specific string, "Shark":
 str_detect(species, "Shark")
 ```
 
-Remember, R is case sensitive. 
+Remember, R is case sensitive.
 
 ```{r}
 str_detect(species, "shark")
@@ -696,8 +678,7 @@ We can replace a string or part of a string:
 str_replace(species, "lemon", "yellow")
 ```
 
-Let's look a more realistic data wrangling example. We first create a small tibble called fish with two columns:
-`sample_id` (an ID that contains both the state abbreviation and a sample number) and `species` (species names that are inconsistently formatted). Then we use `mutate()` to clean and create variables:
+Let's look a more realistic data wrangling example. We first create a small tibble called fish with two columns: `sample_id` (an ID that contains both the state abbreviation and a sample number) and `species` (species names that are inconsistently formatted). Then we use `mutate()` to clean and create variables:
 
 `str_trim(species)` removes extra spaces from the beginning and end of the species names. Here, `" sandbar shark "` becomes `"sandbar shark"`.
 
@@ -732,7 +713,6 @@ sample_id <- c(
 )
 ```
 
-
 The simplest regular expression is just the exact text we want to find.
 
 ```{r}
@@ -749,7 +729,6 @@ Some characters have special meanings inside regular expressions. `.` = any char
 ```{r}
 str_detect(c("cat", "cot", "cut", "dog"), "c.t")
 ```
-
 
 The pattern `"c.t"` means: `c`, followed by any one character, followed by `t`. So, it matches "cat", "cot", and "cut".
 
@@ -773,7 +752,6 @@ str_detect(
   "[0-9]"
 )
 ```
-
 
 Sometimes we care about where a pattern occurs. `^` means the beginning of a string.
 
@@ -881,9 +859,7 @@ We can use functions from `{lubridate}` to convert character strings into dates.
 
 The name of the function tells R the order in which the components of the date appear:
 
-`ymd() = year, month, day`
-`mdy() = month, day, year`
-`dmy() = day, month, year`
+`ymd() = year, month, day` `mdy() = month, day, year` `dmy() = day, month, year`
 
 ```{r}
 ymd("2026-08-10")
@@ -956,7 +932,6 @@ minute(datetime)
 
 second(datetime)
 ```
-
 
 ### Using labels for months and weekdays
 
@@ -1048,6 +1023,7 @@ sampling
 ```
 
 Now combine them to create one date-time variable from several separate variables:
+
 ```{r}
 sampling |>
   mutate(
@@ -1147,10 +1123,7 @@ levels(region)
 
 These categories are called factor levels. Why do factors matter?
 
-Factors are particularly important for:
-1. statistical models
-2. controlling category order
-3. controlling the order of categories in plots
+Factors are particularly important for: 1. statistical models 2. controlling category order 3. controlling the order of categories in plots
 
 For example, suppose we have size classes:
 
@@ -1171,9 +1144,7 @@ factor(size_class)
 
 R orders the levels alphabetically:
 
-large
-medium
-small
+large medium small
 
 But that is not the logical order.
 
@@ -1190,10 +1161,7 @@ levels(size_class)
 
 Now R understands the categories in the order:
 
-small
-medium
-large
-
+small medium large
 
 # Putting it all together
 
@@ -1226,7 +1194,7 @@ When reading a pipeline, read from top to bottom:
 
 ## Final practice
 
-How would you wrangle the data to determine, among penguins observed in 2008 and 2009 with known sex, how many males and females of each species fall into small (< 4.5 kg) versus large (≥ 4.5 kg) body-mass categories?
+How would you wrangle the data to determine, among penguins observed in 2008 and 2009 with known sex, how many males and females of each species fall into small (\< 4.5 kg) versus large (≥ 4.5 kg) body-mass categories?
 
 Hint:
 
@@ -1266,34 +1234,34 @@ In this tutorial, we built on the core dplyr skills from the previous class and 
 
 Some of the main functions and concepts covered were:
 
-| Task                                           | Function or concept                           |
-| ---------------------------------------------- | --------------------------------------------- |
-| Apply the same operation to multiple variables | `across()`                                    |
-| Count observations by one or more groups       | `count()`                                     |
-| Create values based on multiple conditions     | `case_when()`                                 |
-| Combine information from related data frames   | joins, especially `left_join()`               |
-| Identify how tables are related                | primary keys and foreign keys                 |
-| Clean and manipulate character strings         | functions from `stringr`                      |
-| Convert and work with dates and date-times     | functions from `lubridate`                    |
-| Extract parts of dates and times               | `year()`, `month()`, `yday()`, `hour()`, etc. |
-| Round numeric values                           | `round()`, `floor()`, `ceiling()`             |
-| Calculate logarithms                           | `log()` and `log10()`                         |
-| Represent categorical variables                | factors                                       |
-| Control the order of categories                | factor levels                                 |
-| Search for patterns in text                    | regular expressions                           |
-| Detect or extract text patterns                | `str_detect()`, `str_extract()`               |
+| Task | Function or concept |
+|------------------------------------|------------------------------------|
+| Apply the same operation to multiple variables | `across()` |
+| Count observations by one or more groups | `count()` |
+| Create values based on multiple conditions | `case_when()` |
+| Combine information from related data frames | joins, especially `left_join()` |
+| Identify how tables are related | primary keys and foreign keys |
+| Clean and manipulate character strings | functions from `stringr` |
+| Convert and work with dates and date-times | functions from `lubridate` |
+| Extract parts of dates and times | `year()`, `month()`, `yday()`, `hour()`, etc. |
+| Round numeric values | `round()`, `floor()`, `ceiling()` |
+| Calculate logarithms | `log()` and `log10()` |
+| Represent categorical variables | factors |
+| Control the order of categories | factor levels |
+| Search for patterns in text | regular expressions |
+| Detect or extract text patterns | `str_detect()`, `str_extract()` |
 
 A few important ideas to remember:
 
-* `across()` is useful when the same calculation needs to be repeated across several variables.
-* `count()` is a convenient shortcut for counting rows within groups.
-* `case_when()` is useful when creating a new variable from several logical conditions.
-* Joins connect related data frames using keys. `left_join()` is especially useful for adding information from one data frame to another.
-* Character variables often need to be cleaned or standardized before analysis; `stringr` provides tools for doing this.
-* Dates stored as character strings should be converted to date or date-time objects before working with them.
-* In R, `log()` calculates the **natural logarithm**, while `log10()` calculates the **base-10 logarithm**.
-* Factors represent categorical variables and allow you to control the order of categories.
-* Regular expressions provide a flexible way to search for patterns in character strings.
+- `across()` is useful when the same calculation needs to be repeated across several variables.
+- `count()` is a convenient shortcut for counting rows within groups.
+- `case_when()` is useful when creating a new variable from several logical conditions.
+- Joins connect related data frames using keys. `left_join()` is especially useful for adding information from one data frame to another.
+- Character variables often need to be cleaned or standardized before analysis; `stringr` provides tools for doing this.
+- Dates stored as character strings should be converted to date or date-time objects before working with them.
+- In R, `log()` calculates the **natural logarithm**, while `log10()` calculates the **base-10 logarithm**.
+- Factors represent categorical variables and allow you to control the order of categories.
+- Regular expressions provide a flexible way to search for patterns in character strings.
 
 The larger goal is not to memorize every function. Instead, become comfortable identifying the type of data-wrangling problem you have and knowing which family of tools can help solve it.
 
