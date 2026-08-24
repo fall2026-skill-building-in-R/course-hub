@@ -8,7 +8,7 @@ editor: source
 
 ## Working with `course-hub` and your personal tutorial repository (tutorials-exercises)
 
-**Estimated time:** 45–60 minutes
+**Estimated time:** 60-90 minutes
 
 ## Background
 
