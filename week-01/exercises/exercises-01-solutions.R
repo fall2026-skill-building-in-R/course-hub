@@ -137,7 +137,7 @@
 # Other reasonable answers are possible.
 
 
-# Save the file again, then repeat:
+# Save the file again, then repeat: 
 #
 # Review -> Stage -> Commit -> Push -> Verify remote
 #

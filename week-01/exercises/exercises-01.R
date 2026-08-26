@@ -10,7 +10,7 @@
 # The goal is to practice the GitHub workflow and ensure knowledge of GitHub verbs
 #
 # Complete this file inside:
-#
+# 
 # tutorials-exercises/week-01/exercises/
 #
 # When finished, you will:
