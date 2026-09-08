@@ -1,7 +1,7 @@
 ---
 title: "Week-01: GitHub Workflow Tutorial"
 format:
-  pdf:
+  html:
     toc: true
 editor: source
 ---
