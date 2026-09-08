@@ -1,5 +1,5 @@
 ---
-title: "Tutorial 1: Getting Started with R"
+title: "Tutorial 2: Getting Started with R: Coding Basics"
 author: "Dr. Jennifer Bigman"
 format:
   html:
@@ -30,12 +30,10 @@ By the end of this tutorial, you should be able to:
 
 ## Before you begin
 
-This is an **in-class practice tutorial**, not a graded assignment. We will run through it together.
-
-1.  Copy this file from the central course-materials repository into your personal practice repository.
+1.  Copy this file from the central course-hub repository into your personal tutorials-exercises repository.
 2.  Open the copied `.qmd` file in RStudio.
 3.  Run the code as you work through the tutorial.
-4.  Save, render, commit, and push your completed copy.
+4.  Save, render, commit, and push your completed copy (it will be in your personal tutorials-exercises repository).
 
 ::: callout-tip
 ### Useful RStudio shortcuts
@@ -56,7 +54,7 @@ These tools work together, but they are not the same thing:
 - **RStudio** is the integrated development environment, or IDE, where we write and run R code.
 - **Quarto** combines text, code, results, figures, and tables in one reproducible document. We will be using Quarto for the in-class tutorials, but we will NOT be using it for the in-class exercises or out-of-class homework. This is intentional - you want experience with both.
 
-An R code chunk begins and ends with three backticks:
+In quarto, an R code chunk begins and ends with three backticks:
 
 ```{r}
 2 + 2
@@ -100,7 +98,7 @@ log10(100)
 round(3.14159, digits = 2)
 ```
 
-### Your turn 1
+### Your turn 1 (will go through answers at end!)
 
 Calculate each of the following:
 
@@ -134,7 +132,7 @@ fish_mass <- c(1.2, 1.5, NA, 1.8)
 valid_mass <- fish_mass[!is.na(fish_mass)]
 mean(valid_mass)
 
-# another way
+# do this another way
 fish_mass <- c(1.2, 1.5, NA, 1.8)
 mean(fish_mass, na.rm = TRUE)
 ```
@@ -532,8 +530,7 @@ survey_data <- data.frame(
     "hake",
     "haddock",
     "hake",
-    "cod"
-  ),
+    "cod"),
   length_cm = c(42, 38, NA, 31, 35, 29, 44),
   region = c(
     "north",
@@ -542,8 +539,7 @@ survey_data <- data.frame(
     "south",
     "south",
     "north",
-    "north"
-  ),
+    "north"),
   caught = c(
     TRUE,
     TRUE,
@@ -551,9 +547,7 @@ survey_data <- data.frame(
     TRUE,
     TRUE,
     FALSE,
-    TRUE
-  )
-)
+    TRUE))
 
 survey_data
 ```

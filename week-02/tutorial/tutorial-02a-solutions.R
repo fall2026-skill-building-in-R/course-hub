@@ -69,6 +69,7 @@ sum(survey_data$caught)
 survey_data[survey_data$species == "cod", ]
 
 mean_length <- mean(survey_data$length_cm)
+
 survey_data[survey_data$length_cm > mean_length, ]
 
 mean(

@@ -1,7 +1,7 @@
 ---
 title: "Tutorial: Writing Clear and Consistent R Code"
 subtitle: "An introduction to the tidyverse style guide"
-author: "Skill Building in R"
+author: "Dr. Jennifer Bigman"
 format:
   html:
     toc: true
@@ -49,7 +49,7 @@ We will use the `starwars` dataset, which is included with the tidyverse.
 starwars
 ```
 
-Although indentation is not included in the tidyverse style guide, it makes it easier to read code. Please indent one tab for the first line and then keep indenting. This example uses pipes (\|\>), which we will use extensively but not yet. This code is just to show you how to indent on multiple lines so do not worry about the pipes yet.
+Although indentation is not included in the tidyverse style guide, it makes it easier to read code. If you are not using quarto, (i.e., you are using a regular R script, .R), please indent one tab for the first line and then keep indenting. This example uses pipes (\|\>), which we will use extensively but not yet. This code is just to show you how to indent on multiple lines so do not worry about the pipes yet.
 
 ```{r}
 
@@ -58,7 +58,8 @@ Although indentation is not included in the tidyverse style guide, it makes it e
 	starwars |>
 		select(name,
 					 height,
-					 mass) |>
+					 mass, 
+					 birth_year) |>
 		mutate(year = birth_year)
 
 ```
