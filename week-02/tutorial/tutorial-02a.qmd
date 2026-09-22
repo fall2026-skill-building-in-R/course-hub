@@ -105,10 +105,16 @@ Calculate each of the following:
 1.  The mean of 12, 18, and 27.
 2.  The area of a circle with radius 4.
 3.  The square root of 225.
-4.  (2\^5).
+4.  (2^5).
 
 ```{r}
-# Write your code here
+(12 + 18 + 27)/3
+
+mean(c(12, 18, 27))
+
+mean(12, 18, 27)
+
+
 ```
 
 ## Save your code regularly after you make changes. Now is a good time to do so.
@@ -129,6 +135,8 @@ Useful comments explain **why** a step was taken or describe the purpose of a se
 ```{r}
 # remove a missing value before calculating the mean
 fish_mass <- c(1.2, 1.5, NA, 1.8)
+mean(fish_mass)
+
 valid_mass <- fish_mass[!is.na(fish_mass)]
 mean(valid_mass)
 
@@ -211,7 +219,17 @@ Create objects containing:
 Use descriptive `snake_case` names.
 
 ```{r}
-# Write your code here
+name <- "Jennifer Bigman"
+
+current_year <- 2026
+
+water_temp <- 14.5
+
+water_temp_f <- 14.5 * (9 / 5) + 32
+
+# or
+
+water_temp_f <- water_temp * (9 / 5) + 32
 ```
 
 ## Vectors
@@ -308,6 +326,8 @@ Subset a vector using square brackets.
 
 ```{r}
 fish_lengths[fish_lengths > 30]
+
+fish_length <- fish_length[fish_length > 30]
 ```
 
 ### Your turn 3
@@ -327,7 +347,21 @@ Then calculate:
 5.  A vector containing only temperatures greater than 11 °C.
 
 ```{r}
-# Write your code here
+length(temperatures)
+
+mean(temperatures)
+
+min(temperatures)
+
+max(temperatures)
+
+# or range
+
+range(temperatures)
+
+sum(temperatures > 11)
+
+temperatures[temperatures > 11]
 ```
 
 ## Functions and arguments
@@ -411,7 +445,17 @@ Calculate:
 4.  The number of observed values.
 
 ```{r}
-# Write your code here
+mean(survey_catch, na.rm = TRUE)
+
+sum(survey_catch, na.rm = TRUE)
+
+sum(is.na(survey_catch))
+
+sum(!is.na(survey_catch))
+
+length(survey_catch) - sum(is.na(survey_catch))
+
+
 ```
 
 ## Character and logical vectors
@@ -453,6 +497,7 @@ fish_data <- data.frame(
 )
 
 fish_data
+
 ```
 
 Inspect its structure.
@@ -488,7 +533,6 @@ mean(fish_data$length_cm)
 Use a logical condition to select rows.
 
 ```{r}
-fish_data[fish_data$length_cm > 35, ]
 ```
 
 The comma matters:
@@ -509,11 +553,11 @@ Using `fish_data`:
 4.  Display only cod observations.
 
 ```{r}
-# Write your code here
+
 ```
 
 
-### Combining conditions when selecting rows 
+### Combining conditions when selecting rows #### START HERE 
 
 So far, we have selected rows using one condition at a time. We can also
 combine multiple logical conditions.

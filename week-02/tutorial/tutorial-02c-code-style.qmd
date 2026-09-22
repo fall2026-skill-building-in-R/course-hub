@@ -262,9 +262,9 @@ Place a space after a comma, but not before it.
 Avoid:
 
 ``` r
-	fish_length <- c(24,31,28,35)
+    fish_length <- c(24,31,28,35)
 
-	fish_length <- c(24 , 31 , 28 , 35)
+    fish_length <- c(24 , 31 , 28 , 35)
 ```
 
 ## Operators
@@ -497,23 +497,23 @@ The code already shows that the data are being filtered. The comment explains wh
 Organize longer scripts with section headings:
 
 ``` r
-	#### load packages ####
-	library(tidyverse)
+    #### load packages ####
+    library(tidyverse)
 
-	#### import data ####
-	survey_data <- read_csv("data/survey-data.csv")
+    #### import data ####
+    survey_data <- read_csv("data/survey-data.csv")
 
-	#### clean data ####
-	clean_data <- survey_data |>
-		filter(!is.na(length_cm))
+    #### clean data ####
+    clean_data <- survey_data |>
+        filter(!is.na(length_cm))
 
-	#### summarize data ####
-	length_summary <- clean_data |>
-	  summarise(
-	    mean_length = mean(length_cm),
-	    sample_size = n())
+    #### summarize data ####
+    length_summary <- clean_data |>
+      summarise(
+        mean_length = mean(length_cm),
+        sample_size = n())
 
-	#### create figures ####
+    #### create figures ####
 ```
 
 RStudio recognizes headings written with four or more `#` symbols. You can use the document outline to move between sections.
