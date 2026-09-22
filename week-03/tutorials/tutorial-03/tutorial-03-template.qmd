@@ -29,7 +29,7 @@ The tutorial files are organized in a folder like this:
 
 ``` text
 tutorial-03/
-├── tutorial-03.qmd
+├── tutorial-03-template.qmd
 └── data/
     ├── stock-biomass-wide.csv
     ├── The_Fellowship_Of_The_Ring.csv
