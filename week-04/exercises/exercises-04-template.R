@@ -27,7 +27,7 @@
 	
 	library(tidyverse)
 	
-	# We will use the mpg dataset from ggplot2.
+	# We will use the mpg dataset from {ggplot2}.
 	# It contains fuel economy information for 234 vehicle models.
 	#
 	# Some important variables:

@@ -69,10 +69,14 @@
 	mpg |>
 		filter(class == "suv", year == 2008)
 	
+	# or
+	
+	mpg |>
+		filter(class == "suv" & year == 2008)
+	
 	# 3. Filter mpg to include vehicles that:
-	# - have 6 cylinders OR
-	# - get more than 25 mpg on the highway.
-	# Save the result as new_dat.
+	# - have 6 cylinders OR get more than 25 mpg on the highway.
+	# save the result as new_dat.
 	
 	new_dat <- mpg |>
 		filter(cyl == 6 | hwy > 25)
@@ -139,7 +143,8 @@
 	# Save the result as mpg_named.
 	
 	mpg_named <- mpg_small |>
-		rename(city_mpg = cty, highway_mpg = hwy)
+		rename(city_mpg = cty, 
+					 highway_mpg = hwy)
 	
 	glimpse(mpg_named)
 
