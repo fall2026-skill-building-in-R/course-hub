@@ -43,13 +43,20 @@ You will need the `tidyverse`, `palmerpenguins`, and `nycflights13` packages.
 ```{r}
 #| label: setup
 
-install.packages("pak")
+options(repos = c(CRAN = "https://cloud.r-project.org"))
 
-pak::pak(c(
-  "tidyverse",
-  "here",
-  "nycflights13"
-))
+if (!requireNamespace("pak", quietly = TRUE)) {
+  install.packages("pak")
+}
+
+packages <- c("tidyverse", "palmerpenguins", "nycflights13")
+missing_packages <- packages[
+  !vapply(packages, requireNamespace, logical(1), quietly = TRUE)
+]
+
+if (length(missing_packages) > 0) {
+  pak::pak(missing_packages)
+}
 
 library(tidyverse)
 library(palmerpenguins)
