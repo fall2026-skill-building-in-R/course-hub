@@ -11,7 +11,7 @@ In this tutorial, we will build on the core data-wrangling skills from last week
 
 By the end of the tutorial, you should be able to:
 
-use `across()` to apply the same operation to multiple variables; use `count()` to quickly count observations by one or more groups; use `case_when()` to create variables from multiple logical conditions; understand primary and foreign keys and use joins, particularly `left_join()`, to combine related data frames; use basic functions from stringr to clean and manipulate character strings; use basic functions from lubridate to create, convert, and extract information from dates and date-times; use `round()` and distinguish between `log()` and `log10()`; understand factors and control the order of factor levels; use basic regular expressions to identify and extract patterns in character strings; and combine these tools with dplyr functions to build more complex data-wrangling workflows.
+use `across()` to apply the same operation to multiple variables; use `count()` to quickly count observations by one or more groups; use `case_when()` to create variables from multiple logical conditions; understand primary and foreign keys and use joins, particularly `left_join()`, to combine related data frames; use basic functions from {stringr} to clean and manipulate character strings; use basic functions from {lubridate} to create, convert, and extract information from dates and date-times; use `round()` and distinguish between `log()` and `log10()`; understand factors and control the order of factor levels; use basic regular expressions to identify and extract patterns in character strings; and combine these tools with {dplyr} functions to build more complex data-wrangling workflows.
 
 # Setup
 
@@ -57,12 +57,24 @@ We first `group_by` `species` and then take the `mean` **across** all columns th
 The selection rules inside `across()` use the same "tidyselect" helpers that work in `select()`.
 
 ::: callout-note
-Current dplyr syntax places extra function arguments such as `na.rm = TRUE` inside an anonymous function: `~ mean(.x, na.rm = TRUE)`. Older examples may show `across(..., mean, na.rm = TRUE)`.
+Current {dplyr} syntax places extra function arguments such as `na.rm = TRUE` inside an anonymous function: `~ mean(.x, na.rm = TRUE)`. Older examples may show `across(..., mean, na.rm = TRUE)`.
+
+An anonymous function is one that does not have a name and is useful when you only need to use it once or have a small task.
+
+In the example above:
+
+`across()` selects each column ending in `"mm"` and applies the anonymous function to it.
+
+- **`~`** introduces the anonymous function.
+
+- **`.x`** represents the column currently being processed.
+
+- **`mean(.x, na.rm = TRUE)`** calculates that column’s mean, ignoring missing values.
 :::
 
 ## Selecting a range inside `across()`
 
-You can apply the function (i.e., `~ mean(.x, na.rm = TRUE)`) to more than one column at a time. For example, you can find minimum values for a range of measurement variables by using `:`. This code will find the minimum value of each column starting with `bill_depth_mm` and ending with `body_mass_g`, for each species and island.
+You can apply the function (i.e., `~ mean(.x, na.rm = TRUE)`) to more than one column at a time. For example, you can find minimum values for a range of measurement variables by using `:`. This code will find the minimum value of each column starting with `bill_depth_mm` and ending with `body_mass_g`, for each species and island (and then drop the grouping structure after with `.groups = "drop"`).
 
 ```{r}
 penguins |>
@@ -93,7 +105,7 @@ penguins |>
 
 ## Using selection helpers
 
-You can also use the selection helpers you learned about earlier, e.g., `starts_with`, `contains`, and `ends_with`. For example, this code finds the maximum ....
+You can also use the selection helpers you learned about earlier, e.g., `starts_with`, `contains`, and `ends_with`. For example, this code finds the maximum value for each column that starts with "bill" while ignoring missing values.
 
 ```{r}
 penguins |>
@@ -106,7 +118,22 @@ penguins |>
   )
 ```
 
-Other selection helpers include `where()`, `matches()`, `num_range()`, `all_of()`, and `any_of()`. To find out more, you can look these up using the help function (`?`).
+Other selection helpers include `where()`, `matches()`, `num_range()`, `all_of()`, and `any_of()`. For example:
+
+```{r}
+penguins |>
+  group_by(year) |>
+  summarise(
+    across(
+      matches("_mm$"),
+      ~ mean(.x, na.rm = TRUE)
+    )
+  )
+```
+
+This code calculates the mean of each variable whose name ends in `"_mm"` for each year, excluding missing values. `matches("_mm$")` selects columns whose names end in **`"_mm"`**; the `$` marks the end of the name
+
+To find out more, you can look these up using the help function (`?`).
 
 ## Controlling output names
 
@@ -123,9 +150,7 @@ penguins |>
   )
 ```
 
-What are the new column names from the code above?
-
-This could get confusing if you later want to combine them in a new dataframe.
+Overwriting the original columns could get confusing if you later want to combine them in a new dataframe.
 
 Use `.names` to describe how newly created variables should be named.
 
@@ -141,7 +166,9 @@ penguins |>
   )
 ```
 
-The above code renames the summarized (new) columns with a pattern - `max_` + the column name.
+The above code renames the summarized (new) columns with a pattern - `max_` + the column name. **`{.col}`** is a placeholder for the name of the column being processed. Inside `.names`, R replaces it with each selected column’s name.
+
+Here, `.names = "max_{.col}"` adds `max_` before the original name.
 
 ## Applying multiple functions
 
@@ -168,7 +195,7 @@ penguins |>
   )
 ```
 
-T0 review, inside `.names`:
+To review, inside `.names`:
 
 - `{.col}` means the original variable name.
 - `{.fn}` means the name assigned to the function in the function list.
@@ -289,7 +316,7 @@ penguins |>
 ```
 
 ::: callout-note
-`count()` assumes each row represents one observation. If a dataset already contains a variable with frequencies or counts, the `wt =` argument can be used to sum that variable instead.
+By default, `count()` counts rows. If your dataset already contains a column of counts, use `wt =` to sum those counts instead.
 
 For example, the following code creates a summarized dataset in which each row represents a species–sex combination and `n_penguins` gives the number of penguins in that group:
 
@@ -300,14 +327,14 @@ penguin_counts <- penguins |>
 penguin_counts
 ```
 
-If you instead use `count(species)` without `wt =`, `count()` simply counts the number of rows for each species:
+In `penguin_counts`, each row represents a species–sex combination rather than an individual penguin. If you now use `count(species)` without `wt =`, `count()` counts the number of rows for each species:
 
 ```{r}
 penguin_counts |>
   count(species)
 ```
 
-In `penguin_counts`, each row represents a species–sex combination rather than an individual penguin. Therefore, counting rows tells you how many species–sex groups are present, not how many individual penguins there are.
+This code tells you how many species–sex groups are present, not how many individual penguins there are.
 
 If you want to know how many individual penguins are represented for each species in a dataset already summarized this way, use `wt = n_penguins`:
 
@@ -377,7 +404,7 @@ Conditions are evaluated from top to bottom, so their order can matter.
 
 ## Create body-size categories
 
-Create a new variable called `size_bin` that categorized body mass into distinct bins. This code will create `size_bin` and for any observation where `body_mass_g` \> 4500, the value in `size_bin` will be `large`; for any where `body_mass_g` \<= 4500 but \> 3000, the value in `size_bin` will be `medium`, and for any observation where `body_mass_g` \<= 3000, the value in `size_bin` will be `small`.
+Create a new variable called `size_bin` that categorizes body mass into distinct bins. This code will create `size_bin` and for any observation where `body_mass_g` \> 4500, the value in `size_bin` will be `large`; for any where `body_mass_g` \<= 4500 but \> 3000, the value in `size_bin` will be `medium`, and for any observation where `body_mass_g` \<= 3000, the value in `size_bin` will be `small`.
 
 ```{r}
 penguins |>
@@ -395,8 +422,6 @@ penguins |>
 
 You do not really need this step because any row with a `body_mass_g` value of `NA` will yield a `size_bin` value of NA. Using `.default = NA_character_` instead makes that `NA` a character.
 
-I don't often use this feature but wanted to alert you to it.
-
 You can also simplify the above code because each condition is checked sequentially. Thus, the middle condition can be simplified:
 
 ```{r}
@@ -410,8 +435,6 @@ penguins |>
     )
   )
 ```
-
-I think it is best to be explicit and write the first option, with or without the `.default = NA_character_`.
 
 ## Combine `case_when()` with other dplyr verbs
 
@@ -497,15 +520,15 @@ penguins |>
 
 # Joins
 
-There are two main types of joins: mutation joins and filtering joins.
+There are two main types of joins: mutating joins and filtering joins.
 
 Mutating joins add new variables to one data frame from matching observations in another.
 
 Filtering joins filter observations from one data frame based on whether or not they match an observation in another.
 
-For this section, we will be working with `nycflights13` [a compilation of datasets](https://github.com/tidyverse/nycflights13) that contains information about all flights that departed from NYC (e.g. EWR, JFK and LGA) to destinations in the United States, Puerto Rico, and the American Virgin Islands) in 2013. The explanations and code used here are modified from Chapter 19 of Hadley Wickham's [R for Data Science](https://r4ds.hadley.nz/joins.html).
+For this section, we will be working with `nycflights13,` [a compilation of datasets](https://github.com/tidyverse/nycflights13) that contains information about all flights that departed from NYC (e.g. EWR, JFK and LGA) to destinations in the United States, Puerto Rico, and the American Virgin Islands) in 2013. The explanations and code used here are modified from Chapter 19 of Hadley Wickham's [R for Data Science](https://r4ds.hadley.nz/joins.html).
 
-To understand joins, you need to first understand how two tables can be connected through a pair of keys, within each table. In this section, you’ll learn about the two types of key and see examples of both in the datasets of the nycflights13 package. You’ll also learn how to check that your keys are valid, and what to do if your table lacks a key.
+To understand joins, you need to first understand how two tables can be connected through a pair of keys, within each table. In this section, you’ll learn about the two types of key and see examples of both in the datasets of the nycflights13 package. You’ll also learn how to check that your keys are valid and what to do if your table lacks a key.
 
 ### Primary and foreign keys
 
@@ -545,7 +568,7 @@ nrow(flights)
 
 Now we can use foreign keys to match information from these other data frames to flights so we can learn more about each flight. A foreign key is a variable (or set of variables) that corresponds to a primary key in another table. For example:
 
-`flights$tailnum` is a foreign key that corresponds to the primary key `planes$tailnum`. `flights$carrier` is a foreign key that corresponds to the primary key `airlines$carrier`. `flights$origin` is a foreign key that corresponds to the primary key `airports$faa`. `flights$dest` is a foreign key that corresponds to the primary key `airports$faa`. (`flights$origin`, `flights$time_hour`) is a compound foreign key that corresponds to the compound primary key (`weather$origin`, `weather$time_hour`).
+`flights$tailnum` is a foreign key that corresponds to the primary key `planes$tailnum`. `flights$carrier` is a foreign key that corresponds to the primary key `airlines$carrier`. `flights$origin` is a foreign key that corresponds to the primary key `airports$faa`. `flights$dest` is a foreign key that corresponds to the primary key `airports$faa`. (all columns contain the same info - airport codes). (`flights$origin`, `flights$time_hour`) is a compound foreign key that corresponds to the compound primary key (`weather$origin`, `weather$time_hour`).
 
 Let's start with a mutating join. A mutating join allows you to combine variables from two data frames: it first matches observations by their keys, then copies across variables from one data frame to the other. Like `mutate()`, the join functions add variables to the right, so if your dataset has many variables, you won’t see the new ones. For these examples, we’ll make it easier to see what’s going on by creating a narrower dataset with just six variables:
 
@@ -553,51 +576,65 @@ Let's start with a mutating join. A mutating join allows you to combine variable
 flights2 <- flights |> 
   select(year, time_hour, origin, dest, tailnum, carrier)
 flights2
+
+glimpse(flights2)
 ```
 
 There are four types of mutating join, but there’s one that you’ll use almost all of the time: `left_join()`. It’s special because the output will always have the same rows as x, the data frame you’re joining to. The primary use of `left_join()` is to add in additional metadata. For example, we can use `left_join()` to add the full airline name to the `flights2` data:
 
 ```{r}
-flights2 |>
+temp <- flights2 |>
   left_join(airlines)
+
+glimpse(temp)
 ```
 
 Or we could find out the temperature and wind speed when each plane departed:
 
 ```{r}
-flights2 |> 
+temp <- flights2 |> 
   left_join(weather |> select(origin, time_hour, temp, wind_speed))
+
+glimpse(temp)
 ```
 
 When `left_join()` fails to find a match for a row in x, it fills in the new variables with missing values. For example, there’s no information about the plane with tail number N3ALAA so the type, engines, and seats will be missing:
 
 ```{r}
-flights2 |> 
+temp <- flights2 |> 
   filter(tailnum == "N3ALAA") |> 
   left_join(planes |> select(tailnum, type, engines, seats))
+
+glimpse(temp)
 ```
 
 By default, `left_join()` will use all variables that appear in both data frames as the join key, the so called natural join. This is a useful heuristic, but it doesn’t always work. For example, what happens if we try to join `flights2` with the complete `planes` dataset?
 
 ```{r}
-flights2 |> 
+temp <- flights2 |> 
   left_join(planes)
+
+glimpse(temp)
 ```
 
 We get a lot of missing matches because our join is trying to use `tailnum` and `year` as a compound key. Both `flights` and `planes` have a `year` column but they mean different things: `flights$year` is the year the flight occurred and `planes$year` is the year the plane was built. We only want to join on `tailnum` so we need to provide an explicit specification with `join_by()`:
 
 ```{r}
-flights2 |> 
+temp <- flights2 |> 
   left_join(planes, join_by(tailnum))
+
+glimpse(temp)
 ```
 
-Note that the `year` variables are disambiguated in the output with a suffix (`year.x` and `year.y`), which tells you whether the variable came from the x or y argument. You can override the default suffixes with the suffix argument. Also note that `join_by(tailnum)` is short for `join_by(tailnum == tailnum)`.
+Note that the `year` variables are separated in the output with a suffix (`year.x` and `year.y`), which tells you whether the variable came from the x or y argument. You can override the default suffixes with the suffix argument. Also note that `join_by(tailnum)` is short for `join_by(tailnum == tailnum)`.
 
 Let's move on to filtering joins. As you might guess the primary action of a filtering join is to filter the rows. There are two types: semi-joins and anti-joins. Semi-joins keep all rows in x that have a match in y. For example, we could use a semi-join to filter the airports dataset to show just the origin airports:
 
 ```{r}
-airports |> 
+temp <- airports |> 
   semi_join(flights2, join_by(faa == origin))
+
+glimpse(temp)
 ```
 
 This keeps only airports whose `faa` code appears in `flights2$origin`.
@@ -605,9 +642,11 @@ This keeps only airports whose `faa` code appears in `flights2$origin`.
 Anti-joins are the opposite: they return all rows in x that don’t have a match in y. For example, we can find rows that are missing from `airports` by looking for flights that don’t have a matching destination airport:
 
 ```{r}
-flights2 |> 
+temp <- flights2 |> 
   anti_join(airports, join_by(dest == faa)) |> 
   distinct(dest)
+
+glimpse(temp)
 ```
 
 `distinct()` keeps only unique rows or unique values of selected variables. Above, we used it so each unmatched `tailnum` appears only once.
@@ -615,12 +654,14 @@ flights2 |>
 We can also find which `tailnums` are missing from `planes`:
 
 ```{r}
-flights2 |>
+temp <- flights2 |>
   anti_join(planes, join_by(tailnum)) |> 
   distinct(tailnum)
+
+glimpse(temp)
 ```
 
-There is A LOT more to know about joins but now you have an introduction. For more practice and information, see: 1. [The full R for Data Science Chapter](https://r4ds.hadley.nz/joins.html#introduction) 2. [dplyr vignette](https://dplyr.tidyverse.org/articles/two-table.html) 3. [R doumentation for mutating joins](https://dplyr.tidyverse.org/reference/mutate-joins.html) 4. [R documentation for filtering joins](https://dplyr.tidyverse.org/reference/filter-joins.html)
+There is A LOT more to know about joins but now you have an introduction. For more practice and information, see: 1. [The full R for Data Science Chapter](https://r4ds.hadley.nz/joins.html#introduction) 2. [dplyr vignette](https://dplyr.tidyverse.org/articles/two-table.html) 3. [R documentation for mutating joins](https://dplyr.tidyverse.org/reference/mutate-joins.html) 4. [R documentation for filtering joins](https://dplyr.tidyverse.org/reference/filter-joins.html)
 
 # Strings
 
@@ -631,7 +672,7 @@ There are four main families of functions in `{stringr}`:
 1.  Character manipulation: these functions allow you to manipulate individual characters within the strings in character vectors.
 2.  Whitespace tools to add, remove, and manipulate whitespace.
 3.  Locale sensitive operations whose operations will vary from locale to locale.
-4.  Pattern matching functions. These recognise four engines of pattern description. The most common is regular expressions, but there are three other tools.
+4.  Pattern matching functions. These recognize four engines of pattern description. The most common is regular expressions (which you are now familiar with), but there are three other tools.
 
 Let's go over the most common uses. For this, we will work with a vector of 3 strings:
 
@@ -697,6 +738,18 @@ fish |>
     species = str_trim(species),
     species = str_to_title(species),
     state = str_sub(sample_id, 1, 2)
+  )
+```
+
+If you then wanted to remove the state abbreviation from the `sample_id` column, you could use `str_remove`:
+
+```{r}
+fish |>
+  mutate(
+    species = str_trim(species),
+    species = str_to_title(species),
+    state = str_sub(sample_id, 1, 2),
+    sample_id = str_remove(sample_id, "^[A-Z]{2}-")
   )
 ```
 
@@ -799,7 +852,7 @@ This keeps samples whose IDs begin with either "DE" or "NJ".
 
 #### Using Regex to Extract Information
 
-Regular expressions become especially useful when combined with stringr functions. For example, we can extract the numeric portion of our sample IDs:
+Regular expressions become especially useful when combined with {stringr} functions. For example, we can extract the numeric portion of our sample IDs:
 
 ```{r}
 str_extract(sample_id, "[0-9]+")
@@ -813,7 +866,7 @@ You do not need to memorize every regular-expression symbol. You can always look
 
 Dates and times are hard because they have to reconcile two physical phenomena (the rotation of the Earth and its orbit around the sun) with a whole raft of geopolitical phenomena including months, time zones, and DST. This tutorial won’t teach you every last detail about dates and times, but it will give you a solid grounding of practical skills that will help you with common data analysis challenges.
 
-For more information, consult [Chapter 17 of R for Data Science](https://r4ds.hadley.nz/datetimes.html) and the [lubridate package](https://lubridate.tidyverse.org/).
+For more information, consult [Chapter 17 of R for Data Science](https://r4ds.hadley.nz/datetimes.html) and the {[lubridate} package](https://lubridate.tidyverse.org/).
 
 Dates and times are common in real datasets, but R needs to know that a variable represents a date or date-time before we can easily work with it. The `{lubridate}` package, which is part of the `{tidyverse}`, provides functions that make working with dates and times easier.
 
@@ -836,6 +889,12 @@ class(today())
 
 class(now())
 ```
+
+`"POSIXct"` and `"POSIXt"` are classes for date-time objects in R—values that include both a date and a time.
+
+- **`POSIXct`** stores date-times as the number of seconds since January 1, 1970 (UTC).
+
+- **`POSIXt`** is a shared parent class for R’s two date-time classes: `POSIXct` and `POSIXlt`.**`POSIXlt`** stores its components separately, such as year, month, day, hour, and minute.
 
 Dates are generally displayed using the format YYYY-MM-DD; For example 2026-08-10 means August 10, 2026.
 
@@ -871,7 +930,7 @@ dmy("10-Aug-2026")
 
 A useful rule is:
 
-Look at the order of the year, month, and day in your data and choose the corresponding lubridate function. For example:
+Look at the order of the year, month, and day in your data and choose the corresponding {lubridate} function. For example:
 
 ```{r}
 date <- ymd("2026-08-10")
@@ -879,7 +938,7 @@ date <- ymd("2026-08-10")
 class(date)
 ```
 
-R now recognizes this variable as a date rather than as character text.
+R now recognizes this variable as a date rather than as character text. `Date` represents a calendar date; `POSIXct` represents a date and time.
 
 ### Converting Character Strings to Date-Times
 
@@ -889,6 +948,8 @@ If our data contain both a date and a time, we can use similar functions. For ex
 datetime <- ymd_hms("2026-08-10 14:35:22")
 
 datetime
+
+class(datetime)
 ```
 
 If seconds are not included, we can use `ymd_hm()`:
@@ -966,10 +1027,12 @@ fish_samples <- tibble(
 fish_samples
 ```
 
+Note the `datetime` column is labelled **`<dttm>.<dttm>`** is the label a tibble displays for a date-time column, usually one with the classes `"POSIXct" "POSIXt"`. It is not a separate class.
+
 We can use `mutate()` to create new variables containing different components of the date and time:
 
 ```{r}
-fish_samples |>
+temp <- fish_samples |>
   mutate(
     year = year(datetime),
     month = month(datetime, label = TRUE),
@@ -977,6 +1040,8 @@ fish_samples |>
     weekday = wday(datetime, label = TRUE),
     hour = hour(datetime)
   )
+
+glimpse(temp)
 ```
 
 Here we are taking information stored within datetime and creating new variables that may be useful for filtering, summarizing, plotting, or modeling our data. For example, we might want to compare observations among months or examine whether observations differ with time of day.
@@ -1172,6 +1237,7 @@ For example, suppose we want to compare average body size among female penguins 
 ```{r}
 penguins |>
   filter(sex == "female") |>
+	rename(body_mass_g = body_mass) |>
   mutate(body_mass_kg = body_mass_g / 1000) |>
   group_by(species, island) |>
   summarise(
@@ -1217,7 +1283,7 @@ Hint:
 penguins |>
   filter(year %in% c(2008, 2009), !is.na(sex)) |>
   mutate(
-    body_mass_kg = body_mass_g / 1000,
+    body_mass_kg = body_mass / 1000,
     mass_category = case_when(
       body_mass_kg >= 4.5 ~ "large",
       body_mass_kg < 4.5 ~ "small",
@@ -1230,7 +1296,7 @@ penguins |>
 
 # Summary
 
-In this tutorial, we built on the core dplyr skills from the previous class and introduced additional tools for manipulating, combining, and cleaning data.
+In this tutorial, we built on the core {dplyr} skills from the previous class and introduced additional tools for manipulating, combining, and cleaning data.
 
 Some of the main functions and concepts covered were:
 
@@ -1265,4 +1331,4 @@ A few important ideas to remember:
 
 The larger goal is not to memorize every function. Instead, become comfortable identifying the type of data-wrangling problem you have and knowing which family of tools can help solve it.
 
-As with the dplyr functions from the previous tutorial, these tools become most useful when they are combined into readable workflows using the pipe (`|>`).
+As with the {dplyr} functions from the previous tutorial, these tools become most useful when they are combined into readable workflows using the pipe (`|>`).
