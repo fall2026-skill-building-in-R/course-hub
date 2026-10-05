@@ -1,451 +1,526 @@
-	# Exercise: Data Wrangling with dplyr — Part 2
-	
-	# Estimated time: 30–40 minutes
-	
-	# Learning goals:
-	
-	# By the end of this exercise, you should be able to:
-	# - apply the same operation to multiple variables with across()
-	# - count observations by groups with count()
-	# - create categories from logical conditions with case_when()
-	# - use keys and joins to combine related data frames
-	# - clean and manipulate character strings with {stringr}
-	# - use simple regular expressions to identify and extract text patterns
-	# - convert and extract information from dates and date-times with {lubridate}
-	# - round numeric values with round()
-	# - distinguish between log() and log10()
-	# - create factors and control the order of factor levels
-	# - combine these tools in a data-wrangling pipeline
-	
-	# Instructions:
-	# 1. Write your code below each question.
-	# 2. Use descriptive object names written in snake_case.
-	# 3. Run your script from top to bottom before you finish.
-	# 4. Do not delete the questions or instructions - these will help you later.
-	
-	# ------------------------------------------------------------
-	# Setup
-	# ------------------------------------------------------------
-	
+# Week 5: Data Wrangling with dplyr - Part 2
+# Estimated time: 45-60 minutes
+#
+# Learning goals:
+# - summarize multiple variables with across()
+# - count rows and sum existing counts with count()
+# - create categories with case_when()
+# - combine and filter related tables using keys and joins
+# - clean strings and detect or extract text patterns
+# - create date-times and extract date-time components
+# - round values, distinguish logarithm bases, and order factor levels
+# - combine these tools in a pipeline
+#
+# Instructions:
+# 1. Write code below each question; keep the questions and instructions.
+# 2. Use descriptive object names in snake_case.
+# 3. Answer interpretation questions using comments (#).
+# 4. Run your script from top to bottom before finishing.
+
 	library(tidyverse)
 	library(palmerpenguins)
 	library(nycflights13)
-	
-	# ============================================================
-	# Part 1: across()
-	# ============================================================
-	
-	# 1. For each penguin species, calculate the mean of:
-	# bill_length_mm
-	# bill_depth_mm
-	# flipper_length_mm
-	
-	# Use across() rather than writing mean() three times.
-	
-	# Remember to remove missing values.
-	
-	penguins |>
-		group_by(species) |>
-		summarise(
-			across(c(
-				bill_length_mm, bill_depth_mm, flipper_length_mm),
-				~ mean(.x, na.rm = TRUE)
-			)
-		)
-	
-	# 2. For each penguin species, calculate BOTH the mean and
-	# standard deviation of bill_length_mm and flipper_length_mm.
-	
-	# Use across() with a named list of functions.
-	
-	# Name the resulting columns using the pattern:
-	# mean_bill_length_mm
-	# sd_bill_length_mm
-	# mean_flipper_length_mm
-	# sd_flipper_length_mm
-	
-	penguins |>
-		group_by(species) |>
-		summarise(
-			across(
-				c(bill_length_mm, flipper_length_mm),
-					list(
-						mean = ~ mean(.x, na.rm = TRUE),
-						sd = ~ sd(.x, na.rm = TRUE)),
-						.names = "{.fn}_{.col}"
-			)
-		)
-	
-	# ============================================================
-	# Part 2: count()
-	# ============================================================
-	
-	# 3. How many observations are there for each species and island?
-	
-	# Use count().
-	
-	penguins |>
-		count(species, island)
-	
-	# 4. How many observations are there of male and female Adelie and Gentoo penguins?
+	library(lubridate)
 
-	# Write this as one pipeline.
+# We will stick with using the penguins dataset from the
+# {palmerpenguins} package for Parts 1-3. For Part 4, 
+# we will use the data from the {nycflights13} package. For
+# the remainder, we will create data.
 	
-	penguins |>
-		filter(species %in% c("Adelie", "Gentoo")) |>
-		count(species, sex)
 	
-	# ============================================================
-	# Part 3: case_when()
-	# ============================================================
+# ============================================================
+# Part 1: across() ####
+# ============================================================
+# 1. What are the median bill length, bill depth, and flipper length of penguins on each island?
+
+# For each island, calculate the median bill_length_mm,
+# bill_depth_mm, and flipper_length_mm using across().
+# Ignore missing values. Name the columns with the original name
+# followed by _median. Save the result as island_medians.
+
+	island_medians <- penguins |>
+	  group_by(island) |>
+	  summarise(
+	    across(
+	      ends_with("_mm"),
+	      ~ median(.x, na.rm = TRUE),
+	      .names = "{.col}_median"
+	    )
+	  )
 	
-	# 5. Create a new variable called flipper_size using these rules:
+	island_medians
+
+
+# 2. What are the mean and standard deviation of bill length and body mass for female penguins of each species?
+
+# Keep only female penguins. For each species, calculate
+# the mean and standard deviation of bill_length_mm and body_mass_g.
+# Use across() with a named list of functions and ignore missing values.
+# Use names such as mean_bill_length_mm and sd_body_mass_g.
+# Save the result as female_measurements.
+
+	female_measurements <- penguins |>
+	  filter(sex == "female") |>
+	  group_by(species) |>
+	  summarise(
+	    across(
+	      c(bill_length_mm, body_mass_g),
+	      list(
+	        mean = ~ mean(.x, na.rm = TRUE),
+	        sd = ~ sd(.x, na.rm = TRUE)
+	      ),
+	      .names = "{.fn}_{.col}"
+	    )
+	  )
 	
-	# flipper_length_mm >= 210               -> "long"
-	# flipper_length_mm >= 190 and < 210     -> "medium"
-	# flipper_length_mm < 190                -> "short"
-	# Save the resulting data frame as penguin_flipper_size.
+	female_measurements
+
+# ============================================================
+# Part 2: count() ####
+# ============================================================
+# 3. How many penguin observations are there for each species in each year, considering only 2008 and 2009?
+
+# Using one pipeline, keep observations from 2008 and 2009
+# and count observations for each species-year combination.
+# Save the result as species_year_counts.
+
+	species_year_counts <- penguins |>
+	  filter(year %in% c(2008, 2009)) |>
+	  count(species, year)
 	
+	species_year_counts
+	
+
+# 4. Create a new summarized dataset that counts penguin observations for each combination of species and sex.
+# Save as "penguin_counts".
+	
+# Hint: count penguin observations for each species-sex combination.
+# Save the counts in a column called n_penguins.
+# Each row in the resulting dataset represents one group,
+# rather than one individual penguin.
+# Missing sex values are included as a separate group.
+	
+	penguin_counts <- penguins |>
+	  count(species, sex, name = "n_penguins")
+
+
+# 5. How many penguins of each species are represented in penguin_counts? What would count(species) count if you omitted wt =?
+
+# Hint: starting with penguin_counts, use count() with wt =
+# to calculate the total number of penguins represented for each species.
+# Save the result as species_totals.
+# In a comment, explain what count(species) would count without wt =.
+
+	species_totals <- penguin_counts |>
+	  count(species, wt = n_penguins)
+	
+	species_totals
+
+# With wt = n_penguins, count() sums the existing counts within species.
+# Without wt =, it counts rows: the species-sex groups, including an
+# unknown-sex group where present. It does not count individual penguins.
+# Expected totals: Adelie = 152, Chinstrap = 68, Gentoo = 124.
+
+
+# ============================================================
+# Part 3: case_when() ####
+# ============================================================
+# 6. Classify each penguin’s flipper length as short, medium, or long based on these thresholds:
+# flipper_length_mm >= 210 -> "long"
+# flipper_length_mm >= 190 and < 210 -> "medium"
+# flipper_length_mm < 190 -> "short"
+# Ensure you leave missing flipper lengths as missing categories and save the result as penguin_flipper_size.
+
 	penguin_flipper_size <- penguins |>
-		mutate(
-			flipper_size = case_when(
-				flipper_length_mm >= 210 ~ "long",
-				flipper_length_mm >= 190 & flipper_length_mm < 210 ~ "medium",
-				flipper_length_mm < 190 ~ "short",
-				.default = NA_character_
-			)
-		)
+	  mutate(
+	    flipper_size = case_when(
+	      flipper_length_mm >= 210 ~ "long",
+	      flipper_length_mm >= 190 ~ "medium",
+	      flipper_length_mm < 190 ~ "short",
+	      .default = NA_character_
+	    )
+	  )
 	
-	# 6. Starting with penguin_flipper_size, count how many
-	# observations fall into each flipper_size category.
+	penguin_flipper_size
+
+
+# 7. How many penguins of each species fall into each flipper-size category? What does an NA in flipper_size mean?
+
+# Starting with penguin_flipper_size, count observations
+# by species and flipper_size. Save the result as flipper_counts.
+# In a comment, explain what an NA in flipper_size means.
+
+	flipper_counts <- penguin_flipper_size |>
+	  count(species, flipper_size)
 	
-	penguin_flipper_size |>
-		count(flipper_size)
-	
-	
-	# ============================================================
-	# Part 4: joins
-	# ============================================================
-	
-	# We will now use data frames from nycflights13.
-	
-	# Create a smaller version of flights to make the joins
-	# easier to inspect.
-	
+	flipper_counts
+
+# NA means flipper length was missing, so size could not be assigned.
+# count() includes missing categories by default.
+
+
+# ============================================================
+# Part 4: joins ####
+# ============================================================
+
+# Setup:
+# We will use four datasets from {nycflights13}:
+# - flights: one row per flight
+# - airlines: airline codes (carrier) and full airline names (name)
+# - airports: airport codes (faa) and airport names (name)
+# - planes: information about aircraft, identified by tailnum
+#
+# Create a version of flights containing only the columns we need:
+
 	flights_small <- flights |>
-		select(
-			year,
-			time_hour,
-			origin,
-			dest,
-			tailnum,
-			carrier
-		)
-	
-	# 7. Add the full airline name from airlines to flights_small.
-	#
-	# Use left_join(), explicitly specify carrier as the join key using join_by(), and
-	# save the result as flights_airlines.
-	
+	  select(year, time_hour, origin, dest, tailnum, carrier)
+
+
+# 8. What airline operated each flight?
+#
+# Start with flights_small and join it to airlines.
+# Match flights_small$carrier to airlines$carrier.
+#
+# Use left_join() to add the full airline name while keeping
+# every flight. Explicitly specify the key with join_by().
+# Save the result as flights_airlines.
+#
+# In a comment, identify the key and explain why the same carrier
+# code can appear in multiple rows of flights_small.
+
 	flights_airlines <- flights_small |>
-		left_join(airlines, join_by(carrier))
+  	left_join(airlines, join_by(carrier))
+
+	glimpse(flights_airlines)
+
+	# The added name column gives the full airline name for each flight.
+	# carrier is the primary key in airlines and a foreign key in flights_small.
+	# It appears multiple times in flights_small because each airline
+	# operates many flights.
+
 	
-	# 8. Add the destination airport name to each flight in flights_small.
-	
-	# Hint: if flight$dest == "LAX, left-join() matches that to airports$faa = "LAX" and adds name = "Los Angeles Intl".
-	# The new name column tells you which airport each flight was flying to, rather than just giving the 3-letter code.
-	
-	# The foreign key in flights_small is dest.
-	# The primary key in airports is faa.
-	#
-	# First select only faa and name from airports, then use
-	# left_join() with: join_by(dest == faa)
-	#
-	# Save the result as flights_destinations.
-	
+# 9. What is the full name of each flight's destination airport?
+#
+# Start with flights_small and join it to airports.
+# Match flights_small$dest to airports$faa.
+#
+# First select faa and name from airports, renaming name
+# to destination_name.
+# Then use left_join() with join_by(dest == faa).
+# Save the result as flights_destinations.
+#
+# In a comment, explain what an NA in destination_name means.
+
 	flights_destinations <- flights_small |>
-		left_join(
-			airports |> select(faa, name),
-				join_by(dest == faa)
-		)
+	  left_join(
+	    airports |>
+	      select(faa, destination_name = name),
+	    	join_by(dest == faa)
+	  )
 	
-	# 9. Use semi_join() to keep only airports that appear as
-	# origin airports in flights_small.
+	glimpse(flights_destinations)
 	
-	# Match:
-	# airports$faa with flights_small$origin
+	# destination_name gives the full name of each flight's destination.
+	# dest is a foreign key in flights_small; faa is the primary key in airports.
+	# The columns have different names but contain codes that can be matched.
+	# In this dataset, NA in destination_name means the destination code
+	# had no matching record in airports.
+	# left_join() keeps the flight even when no matching airport is found.
+
+# flights_small$dest identifies the destination of each flight. Codes repeat because many flights go to the same airport.
+# airports$faa identifies each airport in the airport lookup table. Each airport code appears once.
+# For example, "LAX" in either column refers to the same airport. join_by(dest == faa) tells R to match those codes, 
+	# even though the columns have different names.
+
+# The next two questions use a filtering join.
 	
-	airports |>
-		semi_join(flights_small, join_by(faa == origin))
+# 10. Which airlines operated flights in flights_small?
+#
+# Start with airlines and join it to flights_small.
+# Match airlines$carrier to flights_small$carrier.
+#
+# Use semi_join() to keep only rows of airlines that have
+# a matching carrier code in flights_small.
+# Explicitly specify the key with join_by().
+# Save the result as airlines_used.
+#
+# In a comment, explain whether semi_join() adds flight columns.
+
+	airlines_used <- airlines |>
+	  semi_join(flights_small, join_by(carrier))
 	
-	# 10. Use anti_join() to identify tail numbers in flights_small
-	# that do NOT have a matching record in planes.
-	#
-	# After the join, use distinct() so that each missing tail
-	# number appears only once.
+	airlines_used
 	
-	flights_small |>
-		anti_join(planes, join_by(tailnum)) |>
-		distinct(tailnum)
+	# Each row represents an airline whose carrier code appears in flights_small.
+	# semi_join() filters rows of airlines; it does not add flight columns.
+	# An airline is not repeated for every matching flight.
+	# Here, all 16 airlines have matching flights, so all are retained.
+
+
+# 11. Which aircraft identifiers in flights_small are missing
+# from the planes dataset?
+#
+# Start with flights_small and remove rows with missing tailnum.
+# Then join it to planes.
+# Match flights_small$tailnum to planes$tailnum.
+#
+# Use anti_join() to keep flights whose tailnum has no match
+# in planes. Explicitly specify the key with join_by().
+# Finally, use distinct(tailnum) to keep each unmatched
+# identifier only once.
+# Save the result as unmatched_tail_numbers.
+
+		unmatched_tail_numbers <- flights_small |>
+		  filter(!is.na(tailnum)) |>
+		  anti_join(planes, join_by(tailnum)) |>
+		  distinct(tailnum)
+		
+		unmatched_tail_numbers
 	
-	# ============================================================
-	# Part 5: strings
-	# ============================================================
-	
-	# Here is a small dataset containing messy character strings:
+	# filter() removes flights with no recorded aircraft identifier.
+	# anti_join() keeps flights whose recorded tailnum is absent from planes.
+	# distinct(tailnum) returns each unmatched identifier only once,
+	# even if that aircraft appears on multiple flights.
+
+# ============================================================
+# Part 5: strings ####
+# ============================================================
+
+# For Part 5 and 6, we will work with this dataset. Please read it into R.
 	
 	fish_records <- tibble(
-		sample_id = c("DE-101", "NJ-205", "DE-310", "MD-422"),
-		species = c(
-			" sandbar shark ",
-			"BLACKTIP SHARK",
-			"Lemon Shark ",
-			"ATLANTIC SHARPNOSE SHARK"
-		)
+	  sample_id = c("DE-101", "NJ-205", "MD-310", "DE-412"),
+	  species = c(
+	    " sandbar shark ",
+	    "BLACKTIP SHARK",
+	    " Atlantic Sturgeon ",
+	    "LEMON SHARK "
+	  )
 	)
-	
-	fish_records
-	
-	# 11. Starting with fish_records:
-	# a. remove extra whitespace from species with str_trim()
-	# b. convert species names to title case with str_to_title()
-	# c. create a new variable called state containing the first
-	# two characters of sample_id with str_sub()
-	#
-	# Save the result as fish_clean.
-	
+
+# 12. Starting with fish_records, use one mutate() to:
+# a. remove leading and trailing whitespace from species with str_trim()
+# b. convert species to title case with str_to_title()
+# c. create a column called `state` from the first two characters of sample_id with str_sub()
+# Save the result as fish_clean.
+
 	fish_clean <- fish_records |>
-		mutate(
-			species = str_trim(species),
-			species = str_to_title(species),
-			state = str_sub(sample_id, 1, 2)
-		)
+	  mutate(
+	    species = str_trim(species),
+	    species = str_to_title(species),
+	    state = str_sub(sample_id, 1, 2)
+	  )
 	
-	# 12. Starting with fish_clean, create a new variable called
-	# contains_shark that is TRUE when species contains the word
-	# "Shark" and FALSE otherwise.
+	fish_clean
+
+# 13. Starting with fish_clean, create contains_shark using
+# str_detect(): TRUE if species contains "Shark", FALSE otherwise.
+# Then keep only shark records (if TRUE). Save the result as shark_records.
+
+	shark_records <- fish_clean |>
+	  mutate(contains_shark = str_detect(species, "Shark")) |>
+	  filter(contains_shark)
 	
-	# Use str_detect().
+	shark_records
+
+
+# ============================================================
+# Part 6: regular expressions ####
+# ============================================================
+
+# 14. Starting with fish_clean, keep rows whose sample_id
+# begins with either DE or NJ. Use filter() and str_detect().
+# Save the result as de_nj_records.
+# Hint: ^ marks the start of a string; | means OR.
+# Make sure both alternatives are anchored to the beginning.
+
+	de_nj_records <- fish_clean |>
+	  filter(str_detect(sample_id, "^DE|^NJ"))
+
+	de_nj_records
+
+# "^(DE|NJ)" is another valid pattern, but requires regex grouping.
+
+
+# 15. Starting with fish_clean, extract the numeric portion
+# of sample_id into a new column called sample_number using str_extract().
+# Save the result as fish_numbers.
+# Hint: [0-9]+ means one or more digits.
+# Check the class of sample_number. Is it numeric or character?
+
+	fish_numbers <- fish_clean |>
+	  mutate(sample_number = str_extract(sample_id, "[0-9]+"))
 	
-	fish_clean <- fish_clean |>
-		mutate(contains_shark = str_detect(species, "Shark"))
+	fish_numbers
 	
-	# ============================================================
-	# Part 6: regular expressions
-	# ============================================================
-	
-	# 13. Which sample IDs begin with either DE or NJ?
-	
-	# Use str_detect() and a regular expression.
-	# Hint: ^ means "beginning of the string" and | means OR
-	
-	str_detect(fish_clean$sample_id, "^DE|^NJ")
-	
-	# 14. Extract the numeric portion of each sample_id.
-	
-	# Use str_extract().
-	
-	# Hint: [0-9]+ means one or more digits.
-	
-	str_extract(fish_clean$sample_id, "[0-9]+")
-	
-	# ============================================================
-	# Part 7: dates and times
-	# ============================================================
+	class(fish_numbers$sample_number)
+
+# str_extract() returns character strings, even when they contain digits.
+
+# ============================================================
+# Part 7: dates and times ####
+# ============================================================
+
+
+# 16. Starting with sampling_times (code below), use one mutate() to:
+# a. convert datetime with ymd_hms(); times are in America/New_York
+# b. create a new column `year` from datetime
+# c. create a new column `month` with month(..., label = TRUE)
+# d. create a new column `hour` from datetime
+# Save the result as sampling_times_clean.
 	
 	sampling_times <- tibble(
-		sample_id = c("DE-101", "NJ-205", "DE-310"),
-		datetime = c(
-			"2026-05-15 08:30:00",
-			"2026-06-20 14:15:00",
-			"2026-07-10 21:45:00"
-		)
+	  sample_id = c("DE-101", "NJ-205", "DE-310"),
+	  datetime = c(
+	    "2026-05-15 08:30:00",
+	    "2026-06-20 14:15:00",
+	    "2026-07-10 21:45:00"
+	  )
 	)
-	
-	sampling_times
-	
-	# 15. Right now, datetime is stored as a character variable.
-	#
-	# Starting with sampling_times:
-	# a. convert datetime to a date-time using ymd_hms()
-	# b. create year from datetime
-	# c. create month using month() with labels
-	# d. create hour from datetime
-	
-	# Save the result as sampling_times_clean.
-	
+
+	# add your code here:
 	sampling_times_clean <- sampling_times |>
-		mutate(
-			datetime = ymd_hms(datetime),
-			year = year(datetime),
-			month = month(datetime, label = TRUE),
-			hour = hour(datetime)
-		)
+	  mutate(
+	    datetime = ymd_hms(datetime, tz = "America/New_York"),
+	    year = year(datetime),
+	    month = month(datetime, label = TRUE),
+	    hour = hour(datetime)
+	  )
 	
-	# 16. From the dataframe below, create a new column called "sample_date" from the separate year, month, and day
-	# variables below using make_date().
-	
+	sampling_times_clean
+
+# 17. Starting with sampling_dates (code for dataframe below), create sample_date from
+# year, month, and day using make_date(). Save as sampling_dates_clean.
+# Check the class of sample_date. In a comment, explain how it differs
+# from the datetime column in sampling_times_clean.
+
 	sampling_dates <- tibble(
-		year = c(2024, 2025, 2026),
-		month = c(6, 7, 5),
-		day = c(15, 20, 10)
+	  year = c(2025, 2026, 2026),
+	  month = c(11, 2, 7),
+	  day = c(12, 18, 3)
+	)
+
+	# add your code here: 
+	sampling_dates_clean <- sampling_dates |>
+	  mutate(sample_date = make_date(year, month, day))
+	sampling_dates_clean
+	class(sampling_dates_clean$sample_date)
+
+
+# ============================================================
+# Part 8: rounding, logarithms, and factors
+# ============================================================
+
+# 18. We will go back to palmerpenguins::penguins for this question. 
+# Calculate mean penguin body mass in kilograms, ignoring
+# missing values, and round it to two decimal places.
+# Save the number as mean_body_mass_kg.
+
+	mean_body_mass_kg <- round(
+	  mean(penguins$body_mass_g, na.rm = TRUE) / 1000,
+	  digits = 2
 	)
 	
-	sampling_dates <- sampling_dates |>
-		mutate(sample_date = make_date(year, month, day))
-	
-	# ============================================================
-	# Part 8: rounding, logarithms, and factors
-	# ============================================================
-	
-	# 17. Calculate the mean body mass of all penguins and round
-	# the result to TWO decimal places.
-	
-	# Hint: You can put round() around mean().
-	
-	round(mean(penguins$body_mass_g, na.rm = TRUE), 2)
-	
-	# 18. Run the following two calculations:
-	
-	log(100)
-	
-	log10(100)
-	
-	# Are the results the same?
-	
-	# In a comment below, write what base each function uses.
-	
-	# No. log() uses base e (the natural logarithm).
-	
-	# log10() uses base 10.
-	
-	# 19. From the following character vector, convert size_class to a factor with the levels in this order:
-	# small, medium, and large. Use levels() to check the order.
-	
-	size_class <- c(
-		"medium",
-		"small",
-		"large",
-		"small",
-		"medium",
-		"large"
+	mean_body_mass_kg
+
+# 19. Calculate log(100) and log10(100).
+# In comments: Are the results the same? What base does each use?
+
+log(100)
+log10(100)
+
+# The results differ: log(100) is approximately 4.60517; log10(100) is 2.
+# log() defaults to base e, the natural logarithm.
+# log10() uses base 10.
+
+
+# ============================================================
+# Factor levels
+# ============================================================
+
+# Please read the following vector into R:
+	size_class <- c("medium", "small", "large", "small", "medium", "large")
+
+# 20. Convert size_class to a factor with levels in this order:
+# small, medium, large. Save it as size_class_factor.
+# Use levels() to check the order.
+
+	size_class_factor <- factor(
+	  size_class,
+	  levels = c("small", "medium", "large")
 	)
 	
-	size_class <- factor(
-		size_class,
-		levels = c("small", "medium", "large")
-		)
-	
-	levels(size_class)
-	
-	# ============================================================
-	# Part 9: Integrated challenge
-	# ============================================================
-	
-	# We will use survey_data for the following questions. 
+	levels(size_class_factor)
+
+# Expected levels: "small", "medium", "large".
+# Specifying level order controls display order, including in plots.
+# This creates an ordinary factor; it does not set ordered = TRUE.
+
+
+# ============================================================
+# Part 9: integrated challenge
+# ============================================================
+
+	# For this last part, we will use the following dataset:
 	
 	survey_data <- tibble(
-		sample_id = c(
-			"DE-001",
-			"DE-002",
-			"NJ-003",
-			"NJ-004",
-			"MD-005",
-			"MD-006"
-		),
-		species = c(
-			" sandbar shark ",
-			"SANDBAR SHARK",
-			"Blacktip Shark ",
-			"BLACKTIP SHARK",
-			" lemon shark",
-			"LEMON SHARK "
-		),
-		datetime = c(
-			"2026-06-01 08:15:00",
-			"2026-06-03 13:30:00",
-			"2026-06-10 19:45:00",
-			"2026-07-02 10:15:00",
-			"2026-07-12 15:30:00",
-			"2026-07-20 21:10:00"
-		),
-		length_cm = c(
-			135,
-			165,
-			120,
-			155,
-			145,
-			175
-		)
+	  sample_id = c("DE-001", "DE-002", "NJ-003", "NJ-004", "MD-005", "MD-006", "DE-007", "NJ-008"),
+	  species = c(
+	    " sandbar shark ", "SANDBAR SHARK", "Blacktip Shark ",
+	    "BLACKTIP SHARK", " lemon shark", "LEMON SHARK ",
+	    "Sandbar Shark ", " blacktip shark "
+	  ),
+	  datetime = c(
+	    "2026-06-01 08:15:00", "2026-06-03 13:30:00",
+	    "2026-06-10 19:45:00", "2026-07-02 10:15:00",
+	    "2026-07-12 15:30:00", "2026-07-20 21:10:00",
+	    "2026-06-08 09:00:00", "2026-06-18 11:45:00"
+	  ),
+	  length_cm = c(135, 165, 120, 155, 145, 175, 140, 125)
 	)
-	
-	survey_data
-	
-	# 20. Starting with survey_data, write ONE pipeline that:
-	# a. removes extra whitespace from species
-	# b. converts species names to title case
-	# c. converts datetime from character to a date-time
-	# d. creates state from the first two characters of sample_id
-	# e. creates month from datetime using month(..., label = TRUE)
-	# f. creates a variable called size_class using:
-	# 	length_cm >= 150 -> "large"
-	# 	length_cm < 150  -> "small"
-	# g. counts observations by:
-	# 	state
-	# 	species
-	# 	month
-	# 	size_class
-	
-	# Save the final result as survey_summary.
-	
+
+# 21. Starting with survey_data, write ONE pipeline that:
+# a. removes leading and trailing whitespace from species
+# b. converts species to title case
+# c. converts datetime to a date-time (America/New_York)
+# d. creates state from the first two characters of sample_id
+# e. creates month using month(..., label = TRUE)
+# f. creates size_class: "large" for length_cm >= 150, "small" for < 150
+# g. counts observations by state, species, month, and size_class
+# Save the result as survey_summary.
+# In a comment, explain what one row of survey_summary represents.
+# Check that the sum of n equals the number of rows in survey_data.
+
 	survey_summary <- survey_data |>
-		mutate(
-			species = str_trim(species),
-			species = str_to_title(species),
-			datetime = ymd_hms(datetime),
-			state = str_sub(sample_id, 1, 2),
-			month = month(datetime, label = TRUE),
-			size_class = case_when(
-				length_cm >= 150 ~ "large",
-				length_cm < 150 ~ "small"
-			)
-		) |>
-		count(state, species, month, size_class)
+	  mutate(
+	    species = str_trim(species),
+	    species = str_to_title(species),
+	    datetime = ymd_hms(datetime, tz = "America/New_York"),
+	    state = str_sub(sample_id, 1, 2),
+	    month = month(datetime, label = TRUE),
+	    size_class = case_when(
+	      length_cm >= 150 ~ "large",
+	      length_cm < 150 ~ "small",
+	      .default = NA_character_
+	    )
+	  ) |>
+	  count(state, species, month, size_class)
 	
-	# ------------------------------------------------------------
-	# Final check
-	# ------------------------------------------------------------
+	survey_summary
+
+# Each row represents a state-species-month-size combination.
+# n is the number of observations in that combination.
+# The two small DE Sandbar Sharks in June form one row with n = 2.
+# The two small NJ Blacktip Sharks in June form one row with n = 2.
+# The other four combinations each have n = 1 (six summary rows total).
 	
-	# Run your entire script from top to bottom.
-	
-	# You should now have practiced:
-	# across()
-	# count()
-	# case_when()
-	# left_join()
-	# semi_join()
-	# anti_join()
-	# join_by()
-	# str_trim()
-	# str_to_title()
-	# str_sub()
-	# str_detect()
-	# str_extract()
-	# regular expressions
-	# ymd_hms()
-	# year()
-	# month()
-	# hour()
-	# make_date()
-	# round()
-	# log()
-	# log10()
-	# factor()
-	# levels()
-	
-	# Before finishing, make sure:
-	# - all of your code runs without errors
-	# - object names are descriptive
-	# - you have used correct style and indentation
-	# - you understand what each step in your pipelines is doing
-	
+sum(survey_summary$n)
+nrow(survey_data)
+sum(survey_summary$n) == nrow(survey_data)
+
+# ------------------------------------------------------------
+# Final check
+# ------------------------------------------------------------
+# Run the entire script from top to bottom.
+# Check object names, indentation, and comments.
+# Make sure you can explain each step of your pipelines.
