@@ -89,7 +89,7 @@ To start our plot, we specify our dataframe in the `data =` argument and add our
 ```{r}
 ggplot(
   data = penguins_plot,
-  mapping = aes(x = flipper_length_mm, y = body_mass_g)
+  mapping = aes(x = body_mass_g, y = flipper_length_mm)
 )
 ```
 
@@ -100,7 +100,7 @@ Add a `geom` layer to plot data:
 ```{r}
 ggplot(
   data = penguins_plot,
-  mapping = aes(x = flipper_length_mm, y = body_mass_g)) +
+  mapping = aes(x = body_mass_g, y = flipper_length_mm)) +
   geom_point()
 ```
 
@@ -109,7 +109,7 @@ The `+` tells `ggplot` to add another layer. Order matters with `ggplot()` becau
 Like many functions in R, you do not need to write out the arguments (e.g., `data =`, `mapping =`). You can write this (but when you are getting started, I recommend writing it all out):
 
 ```{r}
-ggplot(penguins_plot, aes(x = flipper_length_mm, y = body_mass_g)) +
+ggplot(penguins_plot, aes(x = body_mass_g, y = flipper_length_mm)) +
   geom_point()
 ```
 
@@ -118,7 +118,7 @@ ggplot(penguins_plot, aes(x = flipper_length_mm, y = body_mass_g)) +
 
 You can often read a plot as a sentence:
 
-> Use `penguins_plot`, map flipper length to x and body mass to y, then draw points.
+> Use `penguins_plot`, map body mass to x and flipper length to y, then draw points.
 :::
 
 ### Practice 1
@@ -138,8 +138,8 @@ Change the plot so that:
 
 ```{r}
 ggplot(
-  penguins_plot,
-  aes(x = bill_length_mm, y = bill_depth_mm)) +
+  data = penguins_plot,
+  mapping = aes(x = bill_length_mm, y = bill_depth_mm)) +
   geom_point()
 ```
 :::
@@ -162,29 +162,17 @@ You can add these features to your plot. For example, let's add some color. We c
 ggplot(
   data = penguins_plot,
   mapping = aes(
-    x = flipper_length_mm,
-    y = body_mass_g,
-    color = species)) +
-  geom_point()
-```
-
-Here, `color = species` creates a different color for each species and automatically creates a legend.
-
-You can map more than one aesthetic:
-
-```{r}
-ggplot(
-  data = penguins_plot,
-  mapping = aes(
     x = body_mass_g,
     y = flipper_length_mm,
     color = species)) +
   geom_point()
 ```
 
+Here, `color = species` creates a different color for each species and automatically creates a legend.
+
 From this, it is easy to see that Gentoo penguins are larger and have longer flippers, and Adelie and Chinstrap penguins overlap in body mass and flipper length (although less variability in Chinstrap because points are closer together).
 
-Let's add another dimension by separating males and females into different shapes:
+Let's add another dimension by separating males and females into different shapes. For this, we map another aesthetic, shape:
 
 ```{r}
 ggplot(
@@ -197,7 +185,7 @@ ggplot(
   geom_point()
 ```
 
-We can see the for all species, males and females have slightly different relationships between body mass and flipper length; the males have a shorter flipper length for a given body size (the triangles are systematically lower than the circles). If we fit a linear model to these data, it may show different intercepts (flipper length for the average body mass) for males and females of all species - this is how we'd know for sure whether there was a difference.
+We can see the for all species, males and females have slightly different relationships between body mass and flipper length; the males have a larger body size than females but roughly the same flipper length.
 
 You can also change the size of your geom.
 
@@ -223,8 +211,7 @@ You can use aesthetics to represent variables in your dataset—for example, giv
 ```{r}
 ggplot(
   penguins_plot,
-  aes(x = flipper_length_mm, y = body_mass_g)
-) +
+  aes(x = body_mass_g, y = flipper_length_mm)) +
   geom_point(color = "steelblue", size = 2.5)
 ```
 
@@ -232,13 +219,13 @@ Compare these two examples:
 
 ```{r}
 # Mapping: color depends on species
-ggplot(penguins_plot, aes(x = flipper_length_mm, y = body_mass_g)) +
+ggplot(penguins_plot, aes(x = body_mass_g, y = flipper_length_mm)) +
   geom_point(aes(color = species))
 ```
 
 ```{r}
 # Setting: every point is the same color
-ggplot(penguins_plot, aes(x = flipper_length_mm, y = body_mass_g)) +
+ggplot(penguins_plot, aes(x = body_mass_g, y = flipper_length_mm)) +
   geom_point(color = "steelblue")
 ```
 
@@ -249,14 +236,14 @@ Mapping color to a variable inside `aes()`, such as `aes(color = species)`, crea
 To make every point blue, set `color = "blue"` **outside `aes()`**:
 
 ```{r}
-ggplot(penguins_plot, aes(x = flipper_length_mm, y = body_mass_g)) +
+ggplot(penguins_plot, aes(x = body_mass_g, y = flipper_length_mm)) +
 	geom_point(color = "blue")
 ```
 
 If you put `"blue"` inside `aes()`, ggplot2 treats it as a category label and assigns it a color from the default color scale. The points may therefore appear in a different color, with a legend labeled “blue”:
 
 ```{r}
-ggplot(penguins_plot, aes(x = flipper_length_mm, y = body_mass_g)) +
+ggplot(penguins_plot, aes(x = body_mass_g, y = flipper_length_mm)) +
 	geom_point(aes(color = "blue"))
 ```
 
@@ -271,7 +258,7 @@ ggplot(
     x = body_mass_g,
     y = flipper_length_mm,
     color = species)) +
-  geom_point(alpha = 0.3)
+  geom_point(alpha = 0.6)
 ```
 
 This made the points partly transparent. `alpha` can range from 0 to 1, where 1 is fully opaque and 0 is fully transparent (invisible).
@@ -336,7 +323,7 @@ ggplot(data = penguins_plot, mapping = aes(x = species, fill = species)) +
 What does the distribution of body mass look like?
 
 ```{r}
-ggplot(penguins_plot, aes(x = body_mass_g)) +
+ggplot(data = penguins_plot, mapping = aes(x = body_mass_g)) +
   geom_histogram()
 ```
 
@@ -397,7 +384,7 @@ ggplot(
     color = species,
     group = species)) +
   geom_line() +
-  geom_point()
+	geom_point()
 ```
 
 That shows us a line plot, but the axes are funny. This is because `year` is a continuous variable. We have to add information about the x-axis to fix this.
@@ -412,7 +399,7 @@ ggplot(
     group = species)) +
   geom_line() +
   geom_point() +
-  scale_x_continuous(breaks = 2007:2009)
+  scale_x_continuous(breaks = c(2007, 2008, 2009)) 
 ```
 
 `scale_x_continuous(breaks = 2007:2009)` specifies which years appear as axis labels.
@@ -465,9 +452,7 @@ ggplot(
   mapping = aes(
     x = factor(year),
     y = mean_body_mass_g,
-    group = species
-  )
-) +
+    group = species)) +
   geom_line() +
   geom_point()
 ```
@@ -481,9 +466,7 @@ ggplot(
     x = factor(year),
     y = mean_body_mass_g,
     group = species,
-    color = species
-  )
-) +
+    color = species)) +
   geom_line() +
   geom_point()
 ```
@@ -496,9 +479,7 @@ ggplot(
   mapping = aes(
     x = factor(year),
     y = mean_body_mass_g,
-    group = species
-  )
-) +
+    group = species)) +
   geom_line(color = "black") +
   geom_point(aes(color = species), size = 2)
 ```
@@ -509,7 +490,7 @@ Aesthetics placed inside a particular `geom_*()` apply only to that layer.
 
 ## 6. Faceting: small multiples
 
-Sometimes a plot becomes crowded when several groups appear in the same panel. Faceting separates the data into panels so you can see patterns within each group and compare groups more easily. Each panel shows a subset of the data using the same type of plot. 
+Sometimes a plot becomes crowded when several groups appear in the same panel. Faceting separates the data into panels so you can see patterns within each group and compare groups more easily. Each panel shows a subset of the data using the same type of plot.
 
 There are two main faceting functions in ggplot2: facet_wrap() and facet_grid(). facet_wrap() creates panels that wrap across rows and is commonly used to split a plot by one categorical variable. facet_grid() arranges panels in a grid and is useful for showing combinations of two categorical variables, with one defining the rows and the other defining the columns.
 
@@ -517,8 +498,8 @@ Let's start with `facet_wrap()`. The formula is `~ variable_name`. Here, we want
 
 ```{r}
 ggplot(
-  penguins_plot,
-  aes(x = flipper_length_mm, y = body_mass_g)) +
+  data = penguins_plot,
+  mapping = aes(x = body_mass_g, y = flipper_length_mm)) +
   geom_point() +
   facet_wrap(~ species)
 ```
@@ -528,7 +509,8 @@ We can swap this out for any categorical variable:
 ```{r}
 ggplot(
   penguins_plot,
-  aes(x = flipper_length_mm, y = body_mass_g, color = species)) +
+  aes(x = body_mass_g, y = flipper_length_mm,
+  		color = species)) +
   geom_point() +
   facet_wrap(~ sex)
 ```
@@ -542,7 +524,7 @@ Use two categorical variables to make rows and columns:
 ```{r}
 ggplot(
   penguins_plot,
-  aes(x = flipper_length_mm, y = body_mass_g)) +
+  aes(x = body_mass_g, y = flipper_length_mm)) +
   geom_point() +
   facet_grid(sex ~ species)
 ```
@@ -579,7 +561,7 @@ ggplot(
   )
 ```
 
-### Change the theme 
+### Change the theme
 
 A ggplot2 theme controls the appearance of the parts of a plot that do not represent data, such as the background, grid lines, axis text, titles, and legend placement.
 
@@ -600,7 +582,7 @@ ggplot(
 
 Other built-in themes to try include:
 
-```r
+``` r
 theme_minimal()
 theme_classic()
 theme_light()
@@ -609,6 +591,7 @@ theme_light()
 ### Modify a specific theme element
 
 You can also adjust almost every element in a theme (i.e., the individual parts). To see what you can adjust:
+
 ```{r}
 ? theme()
 ```
@@ -630,10 +613,11 @@ ggplot(
   theme_bw() +
   theme(
     panel.grid.minor = element_blank(),
+    panel.grid.major = element_blank(),
     axis.text.x = element_text(face = "bold"))
 ```
 
-Remember, order matters in `ggplot()`. In the above plot, we overrode the ` panel.grid.minor` and `axis.text.x()` elements in `theme_bw()` by specifying these again.
+Remember, order matters in `ggplot()`. In the above plot, we overrode the `panel.grid.minor` and `axis.text.x()` elements in `theme_bw()` by specifying these again.
 
 ### Use a different color scale
 
@@ -673,6 +657,7 @@ theme_penguins <- function() {
 ```
 
 Then add it to a plot just like you would any other theme:
+
 ```{r}
 ggplot(
   data = penguins_plot,
@@ -688,7 +673,6 @@ ggplot(
     color = "Species") +
   theme_penguins()
 ```
-
 
 ## 8. Save plots as objects
 
@@ -718,7 +702,7 @@ Create a second plot:
 ```{r}
 p_flipper <- ggplot(
   penguins_plot,
-  aes(x = flipper_length_mm, y = body_mass_g, color = species)) +
+  aes(x = body_mass_g, y = flipper_length_mm, color = species)) +
   geom_point(alpha = 0.7) +
   labs(
     x = "Flipper length (mm)",
@@ -799,6 +783,7 @@ Use `ggsave()` to save the most recently displayed plot:
 ```{r}
 # ggsave(
 #   filename = "penguin_figure.png",
+# 	plot = plot, 
 #   width = 8,
 #   height = 5,
 #   units = "in",
@@ -882,7 +867,7 @@ Before changing lots of options, check:
 2.  Are they the expected types (`numeric`, `factor`, `character`)?
 3.  Is the geom appropriate for those variable types?
 4.  Are missing values affecting the plot?
-5. Are the axes not capturing the correct ranges?
+5.  Are the axes not capturing the correct ranges?
 
 ```{r}
 glimpse(penguins_plot)
@@ -905,10 +890,21 @@ Your figure should include:
 
 ```{r}
 # Build your plot here
+ggplot(data = penguins_plot, mapping = aes(x = bill_length_mm, y = bill_depth_mm, color = species)) +
+	geom_point() +
+	facet_wrap( ~ sex) +
+	labs(x = "Bill length (mm)",
+			 y = "Bill depth (mm)",
+			 color = "Species") +
+	theme_bw() +
+	theme(
+		strip.text = element_text(size = 18, face = "bold"), 
+strip.background = element_blank())
+
+	
+	
 
 ```
-
-If you finish early, create a second plot showing bill length distributions and combine the two figures with `{patchwork}`.
 
 ## Key takeaways
 

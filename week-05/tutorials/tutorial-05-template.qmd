@@ -246,7 +246,8 @@ penguins |>
   summarise(
     across(
       where(is.numeric),
-      ~ max(.x, na.rm = TRUE)
+      ~ max(.x, na.rm = TRUE),
+      .names = "{.col}_max"
     )
   )
 ```
@@ -534,7 +535,7 @@ To understand joins, you need to first understand how two tables can be connecte
 
 Every join involves a pair of keys: a primary key and a foreign key. A primary key is a variable or set of variables that uniquely identifies each observation. When more than one variable is needed, the key is called a compound key.
 
-Let's look at a few datasets in the `nycflights` package.
+Let's look at a few datasets in the {`nycflights13}` package.
 
 `airlines` records two pieces of data about each airline: its carrier code and its full name. You can identify an airline with its two letter carrier code, making `carrier` the primary key.
 
@@ -575,6 +576,7 @@ Let's start with a mutating join. A mutating join allows you to combine variable
 ```{r}
 flights2 <- flights |> 
   select(year, time_hour, origin, dest, tailnum, carrier)
+
 flights2
 
 glimpse(flights2)
@@ -781,6 +783,9 @@ Some characters have special meanings inside regular expressions. `.` = any char
 
 ```{r}
 str_detect(c("cat", "cot", "cut", "dog"), "c.t")
+
+v <- c("cat", "cot", "cut", "dog")
+str_detect(v, "c.t")
 ```
 
 The pattern `"c.t"` means: `c`, followed by any one character, followed by `t`. So, it matches "cat", "cot", and "cut".
@@ -1063,7 +1068,7 @@ sampling
 We can combine these columns into a single date using `make_date()`:
 
 ```{r}
-sampling |>
+d <- sampling |>
   mutate(
     date = make_date(year, month, day)
   )
@@ -1090,7 +1095,7 @@ sampling
 Now combine them to create one date-time variable from several separate variables:
 
 ```{r}
-sampling |>
+d <- sampling |>
   mutate(
     datetime = make_datetime(
       year,
@@ -1149,7 +1154,7 @@ ceiling(3.2)
 Logarithmic transformations are common when variables are highly skewed or when relationships are multiplicative rather than additive. In R, it is important to know the difference between `log()` and `log10()`. `log()` is the natural logarithm and `log10()` is the base-10 logarithm.
 
 ```{r}
-log(10)
+log(10) 
 
 log10(10)
 ```
