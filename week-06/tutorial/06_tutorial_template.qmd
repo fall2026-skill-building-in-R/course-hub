@@ -409,7 +409,7 @@ Plots made with `{ggplot2}` are very customizable and there are so many differen
 ### Quick reference
 
 | Variables | Common starting geom | Typical question |
-|------------------------|------------------------|------------------------|
+|----|----|----|
 | 1 categorical | `geom_bar()` | How many observations are in each group? |
 | 1 continuous | `geom_histogram()` | What is the distribution? |
 | categorical + continuous | `geom_boxplot()` | How does a numeric variable differ among groups? |

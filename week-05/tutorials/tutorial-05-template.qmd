@@ -1306,7 +1306,7 @@ In this tutorial, we built on the core {dplyr} skills from the previous class an
 Some of the main functions and concepts covered were:
 
 | Task | Function or concept |
-|------------------------------------|------------------------------------|
+|----|----|
 | Apply the same operation to multiple variables | `across()` |
 | Count observations by one or more groups | `count()` |
 | Create values based on multiple conditions | `case_when()` |
