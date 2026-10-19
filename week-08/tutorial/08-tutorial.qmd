@@ -1,0 +1,652 @@
+---
+title: "Linear regression in R Part 2"
+subtitle: "Multiple regression"
+author: "Skill Building in R"
+format:
+  html:
+    toc: true
+    toc-depth: 2
+    embed-resources: true
+    code-copy: true
+    theme: cosmo
+execute:
+  echo: true
+  warning: true
+  message: false
+---
+
+## Learning outcomes
+
+By the end, you should be able to:
+
+- Fit a multiple regression with one categorical and one numeric predictor, interpret model, and plot predictions.
+
+- Interpret additive and interaction models.
+
+- Generate and plot predictions with confidence intervals.
+
+- Assess model assumptions using diagnostic plots.
+
+- Compare models using fit summaries, coefficient uncertainty, and AIC.
+
+## Setup
+
+```{r}
+library(tidyverse)
+library(broom)
+library(palmerpenguins)
+
+theme_set(theme_bw(base_size = 12))
+
+glimpse(penguins)
+```
+
+## 1. Multiple regression: models with more than one predictor
+
+**Question:** How does mean flipper length vary with body mass and sex?
+
+Our response is `flipper_length_mm`. We have two predictors:
+
+- `body_mass_g`: numeric, measured in grams.
+- `sex`: categorical, with female as the reference level.
+
+This is **multiple linear regression** because the model contains more than one predictor. We begin with an **additive model**, which assumes the same body-mass slope for both sexes and a constant difference between their predicted means.
+
+### A. Prepare the data
+
+Remove rows with missing values in any of the three model variables. Explicitly set the reference level so the coefficient interpretations are clear.
+
+```{r}
+adelie_dat <- penguins |>
+  filter(species == "Adelie") |>
+  drop_na(flipper_length_mm, body_mass_g, sex) |>
+  mutate(sex = factor(sex, levels = c("female", "male")))
+
+glimpse(adelie_dat)
+
+adelie_dat |>
+  count(sex)
+```
+
+This model may use a different sample from a model that only required flipper length and body mass. When comparing model coefficients, remember that both the predictors and the included observations can change.
+
+### B. Preliminary plots
+
+First, examine flipper length and body mass, using color to distinguish the two groups.
+
+```{r}
+ggplot(
+  data = adelie_dat,
+  mapping = aes(
+    x = body_mass_g,
+    y = flipper_length_mm,
+    color = sex
+  )
+) +
+  geom_point(alpha = 0.7) +
+  labs(
+    x = "Body mass (g)",
+    y = "Flipper length (mm)",
+    color = "Sex",
+    title = "Flipper length and body mass by sex"
+  ) +
+  theme_bw()
+```
+
+Next, look at the distribution of each numeric variable by sex.
+
+```{r}
+
+ggplot(
+  data = adelie_dat,
+  mapping = aes(x = sex, y = flipper_length_mm, fill = sex)
+) +
+  geom_boxplot(outlier.shape = NA, alpha = 0.4) +
+  geom_jitter(width = 0.12, height = 0, alpha = 0.5) +
+  labs(x = "Sex", y = "Flipper length (mm)") +
+  guides(fill = "none") +
+  theme_bw()
+
+ggplot(
+  data = adelie_dat,
+  mapping = aes(x = sex, y = body_mass_g, fill = sex)
+) +
+  geom_boxplot(outlier.shape = NA, alpha = 0.4) +
+  geom_jitter(width = 0.12, height = 0, alpha = 0.5) +
+  labs(x = "Sex", y = "Body mass (g)") +
+  guides(fill = "none") +
+  theme_bw()
+
+adelie_dat |>
+  group_by(sex) |>
+  summarize(
+    n_penguins = n(),
+    mean_flipper_mm = mean(flipper_length_mm),
+    mean_mass_g = mean(body_mass_g),
+    min_mass_g = min(body_mass_g),
+    max_mass_g = max(body_mass_g)
+  )
+```
+
+**Discussion:**
+
+1.  Does flipper length appear to differ between the sexes?
+
+2.  Does body mass also appear to differ between the sexes?
+
+3.  At similar body masses, do the groups appear to have similar flipper lengths?
+
+4.  Why might comparing overall group means answer a different question from comparing groups at the same body mass?
+
+### C. Fit an additive model
+
+```{r}
+
+flipper_model_add <- lm(
+  flipper_length_mm ~ body_mass_g + sex,
+  data = adelie_dat
+)
+
+tidy(flipper_model_add) 
+```
+
+The `+` includes both predictors. It does not fit an interaction.
+
+The fitted equation is:
+
+\[ \widehat{\text{flipper length}} = \hat\beta\_0 + \hat\beta\_1,\text{body mass} + \hat\beta\_2,I(\text{male}). \]
+
+Here, (I(\text{male})) equals 1 for male and 0 for female (known as dummy coding).R automatically creates the indicator variables from factors.
+
+- **Female:** predicted flipper length = intercept + body-mass slope × body mass.
+- **Male:** predicted flipper length = intercept + male coefficient + body-mass slope × body mass.
+
+Both groups have the same slope, so the model produces **parallel lines**. Parallelism is an assumption of this additive specification, not something established by fitting it.
+
+### D. Interpret the output
+
+| Output term | Interpretation |
+|------------------------------------|------------------------------------|
+| `(Intercept)` | Predicted mean flipper length for a female with body mass 0 g. |
+| `body_mass_g` | Predicted difference in mean flipper length, in millimeters, associated with a 1 g increase in body mass, **holding sex constant**. The model assumes this slope is the same for both sexes. |
+| `sexmale` | Predicted difference in mean flipper length, male minus female, **at the same body mass**. The model assumes this difference is constant across body masses. |
+
+For this dataset, the estimates are approximately:
+
+- **Intercept: 166.46 mm**, the predicted female mean flipper length at 0 g.
+- **Body-mass slope: 0.00633 mm/g**, the predicted increase in mean flipper length per additional gram, holding sex constant.
+- **Male coefficient: 0.344 mm**, the predicted male-minus-female difference at the same body mass. The predicted male mean flipper length at 0 g is thus 166.46 + 0.344 = 166.804 mm
+
+“Holding sex constant” means comparing penguins within the same sex in the fitted model. “At the same body mass” means comparing the two model predictions using one common numeric predictor value. These are model-adjusted associations, not effects established by experimental manipulation.
+
+Our results show that mean flipper length increases with body mass after accounting for sex but there is no statistical difference in the mean flipper length between males and females at the same body mass.
+
+Importantly, we did not ask whether there was a different relationship between body mass and flipper length for males and females. This would entail fitting an interaction between body mass and sex (we will do this later).
+
+### E. Plot predictions from the fitted model
+
+Next we calculate fitted values (predictions) at a sequence of body masses for each sex. Create a separate sequence within each sex’s observed body-mass range. `reframe()` creates a new data frame and allows each group to return any number of rows.
+
+```{r}
+
+prediction_grid <- adelie_dat |>
+  group_by(sex) |>
+  reframe(
+    body_mass_g = seq(
+      min(body_mass_g),
+      max(body_mass_g),
+      length.out = 100
+    )
+  )
+
+prediction_grid <- prediction_grid |>
+  mutate(
+    predicted_flipper_mm = as.numeric(
+      predict(flipper_model_add, newdata = prediction_grid)
+    )
+  )
+
+head(prediction_grid)
+```
+
+Now plot.
+
+```{r}
+ggplot(
+  data = adelie_dat,
+  mapping = aes(x = body_mass_g, y = flipper_length_mm, color = sex)
+) +
+  geom_point(alpha = 0.5) +
+  geom_line(
+    data = prediction_grid,
+    mapping = aes(y = predicted_flipper_mm, group = sex),
+    linewidth = 1.1
+  ) +
+  labs(
+    x = "Body mass (g)",
+    y = "Flipper length (mm)",
+    color = "Sex",
+    title = "Predicted flipper length from the two-predictor model",
+    subtitle = "Lines span each group's observed body-mass range"
+  ) +
+  theme_bw()
+```
+
+`group = sex` tells `geom_line()` to draw a separate line for each sex. Although `color = sex` also groups the lines, we include `group = sex` to make this explicit.
+
+We use `predict()` to plot predictions from our additive model, which assumes the **same slope for both sexes**. Using `geom_smooth(method = "lm")` with `color = sex` would instead fit a separate regression for each sex, allowing different slopes.
+
+The lines are parallel because the additive model assumes the **same body-mass slope for both sexes**. The **`sexmale` coefficient** describes the vertical distance between the lines: the predicted male-minus-female difference at the same body mass.
+
+### F. Add confidence bands to the predicted means
+
+```{r}
+
+preds <- predict(
+  flipper_model_add,
+  newdata = prediction_grid,
+  interval = "confidence",
+  level = 0.95
+) |>
+  as_tibble()
+
+prediction_bands <- bind_cols(prediction_grid, preds)
+
+ggplot(
+  data = adelie_dat,
+  mapping = aes(x = body_mass_g, y = flipper_length_mm, color = sex)
+) +
+  geom_ribbon(
+    data = prediction_bands,
+    mapping = aes(
+      x = body_mass_g, ymin = lwr, ymax = upr,
+      fill = sex, group = sex
+    ),
+    inherit.aes = FALSE,
+    alpha = 0.18
+  ) +
+  geom_point(alpha = 0.5) +
+  geom_line(
+    data = prediction_bands,
+    mapping = aes(y = fit, group = sex),
+    linewidth = 1.1
+  ) +
+  labs(
+    x = "Body mass (g)", y = "Flipper length (mm)",
+    color = "Sex", fill = "Sex",
+    title = "Predicted means with 95% pointwise confidence intervals"
+  ) +
+  theme_bw()
+```
+
+`predict(..., interval = "confidence")` returns `fit`, `lwr`, and `upr`. These bands describe uncertainty in the predicted **mean**, under the model assumptions. They are not prediction intervals for individual penguins and are not simultaneous confidence bands for the whole curve.
+
+### G. Diagnostics
+
+```{r}
+plot(flipper_model_add)
+```
+
+**`plot(flipper_model_add)` checks the entire model, including body mass and sex.** It does not plot each predictor separately.
+
+The fitted values on the x-axis are calculated using **both predictors**. They appear continuous because body mass varies continuously.
+
+The default diagnostic plots do **not distinguish observations by sex**, so group-specific patterns may be harder to see. Coloring residual plots by sex, as we did with `ggplot()`, helps reveal those patterns.
+
+```{r}
+add_results <- augment(flipper_model_add, data = adelie_dat)
+```
+
+#### **Residuals versus fitted values**
+
+```{r}
+ggplot(
+  data = add_results,
+  mapping = aes(x = .fitted, y = .resid, color = sex)
+) +
+  geom_point(alpha = 0.6) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(x = "Fitted flipper length (mm)", y = "Residual (mm)", color = "Sex") +
+  theme_bw()
+```
+
+This checks whether residuals show a pattern across the model’s predicted flipper lengths.
+
+- A curved pattern suggests the model misses part of the mean relationship.
+
+- Changing vertical spread suggests unequal variance.
+
+- Colors help reveal whether patterns differ by sex.
+
+#### **Residuals versus body mass**
+
+```{r}
+ggplot(
+  data = add_results,
+  mapping = aes(x = body_mass_g, y = .resid, color = sex)
+) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "loess", formula = y ~ x, se = FALSE) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(x = "Body mass (g)", y = "Residual (mm)", color = "Sex") +
+  theme_bw()
+```
+
+This focuses on whether the model captures the body-mass relationship **within each sex**. The smooth lines summarize residual patterns separately for females and males.
+
+- Roughly horizontal smooth lines near zero support the shared-slope model.
+
+- Opposite trends—for example, increasing residuals for males and decreasing residuals for females—suggest the sexes may need different slopes, motivating an interaction.
+
+- Curved trends suggest a nonlinear relationship may be needed.
+
+For this additive model, fitted values are a linear transformation of body mass within each sex, so the plots contain closely related information. **The second makes group-specific trends easier to interpret.**
+
+### H. Interaction model
+
+An **interaction model**, `flipper_length_mm ~ body_mass_g * sex`, would allow the body-mass slope to differ by sex. This would mean a slightly different wording to the question to make the interaction explicit:
+
+**Question:** Does the relationship between body mass and mean flipper length differ between female and male Adélie penguins?
+
+An additive model assumes the same body-mass slope for both groups. An **interaction model allows that slope to differ by sex**. Notice we use `body_mass_g * sex`. The `*` is a shortcut for `body_mass_g + sex + body_mass_g:sex`.
+
+```{r}
+flipper_model_int <- lm(
+  flipper_length_mm ~ body_mass_g * sex,
+  data = adelie_dat
+)
+
+tidy(flipper_model_int) 
+```
+
+The fitted equation is:
+
+$$
+\widehat{\text{flipper length}} =
+\hat\beta_0 + \hat\beta_1\,\text{body mass}
++ \hat\beta_2\,I(\text{male})
++ \hat\beta_3\,\text{body mass}\,I(\text{male}).
+$$
+
+Here, $I(\text{male})$ equals 1 for male and 0 for female. Female is our reference category.
+
+- **Female:** predicted flipper length = intercept + body-mass coefficient × body mass.
+- **Male:** predicted flipper length = (intercept + male coefficient) + (body-mass coefficient + interaction coefficient) × body mass.
+
+The model estimates a separate slope and intercept for each group. The lines **can be nonparallel**; the interaction model permits different slopes without establishing that the population slopes differ.
+
+#### Interpret the output
+
+| Output term | Interpretation |
+|------------------------------------|------------------------------------|
+| `(Intercept)` | Predicted mean flipper length for a female with body mass 0 g. |
+| `body_mass_g` | Predicted increase in mean flipper length, in mm, per additional gram of body mass **for females**, the reference group. |
+| `sexmale` | Predicted male-minus-female difference in mean flipper length **at body mass 0 g**. This is not an overall sex difference. |
+| `body_mass_g:sexmale` | Difference between the male and female body-mass slopes, in mm/g. Add it to the female slope to obtain the male slope. |
+
+For these data, the estimates are approximately:
+
+- **Female intercept:** 169.40 mm.
+- **Female slope:** 0.00546 mm/g
+- **Male coefficient:** −4.719 mm, the difference at 0 g.
+- **Interaction coefficient:** +0.001397 mm/g, the male-minus-female slope difference.
+
+The predicted **male intercept** is approximately $169.397 - 4.719 = 164.678$ mm, and the predicted **male slope** is approximately $0.005461 + 0.001397 = 0.006859$ mm/g.
+
+This model suggests that the predicted mean flipper length increases with body mass in both sexes, with a **steeper estimated increase for males**.
+
+**The interpretation of the main effects changes when we include an interaction.** The numeric coefficient is now the slope for females rather than a shared slope. The `sexmale` coefficient describes the group difference at 0 g rather than a constant difference across body masses.
+
+Next we calculate predictions at a sequence of body masses for each sex. Create a separate sequence within each sex’s observed body-mass range and plot:
+
+```{r}
+prediction_grid <- adelie_dat |>
+  group_by(sex) |>
+  reframe(
+    body_mass_g = seq(
+      min(body_mass_g),
+      max(body_mass_g),
+      length.out = 100
+    )
+  )
+
+prediction_grid <- prediction_grid |>
+  mutate(
+    predicted_flipper_mm = as.numeric(
+      predict(flipper_model_int, newdata = prediction_grid)
+    )
+  )
+
+head(prediction_grid)
+
+ggplot(
+  data = adelie_dat,
+  mapping = aes(x = body_mass_g, y = flipper_length_mm, color = sex)
+) +
+  geom_point(alpha = 0.5) +
+  geom_line(
+    data = prediction_grid,
+    mapping = aes(y = predicted_flipper_mm, group = sex),
+    linewidth = 1.1
+  ) +
+  labs(
+    x = "Body mass (g)",
+    y = "Flipper length (mm)",
+    color = "Sex",
+    title = "Predicted flipper length from the interaction model",
+    subtitle = "Lines span each group's observed body-mass range"
+  ) +
+  theme_bw()
+
+preds <- predict(
+  flipper_model_int,
+  newdata = prediction_grid,
+  interval = "confidence",
+  level = 0.95
+) |>
+  as_tibble()
+
+prediction_bands <- bind_cols(prediction_grid, preds)
+
+ggplot(
+  data = adelie_dat,
+  mapping = aes(x = body_mass_g, y = flipper_length_mm, color = sex)
+) +
+  geom_ribbon(
+    data = prediction_bands,
+    mapping = aes(
+      x = body_mass_g, ymin = lwr, ymax = upr,
+      fill = sex, group = sex
+    ),
+    inherit.aes = FALSE,
+    alpha = 0.18
+  ) +
+  geom_point(alpha = 0.5) +
+  geom_line(
+    data = prediction_bands,
+    mapping = aes(y = fit, group = sex),
+    linewidth = 1.1
+  ) +
+  labs(
+    x = "Body mass (g)", y = "Flipper length (mm)",
+    color = "Sex", fill = "Sex",
+    title = "Interaction model: predicted means with 95% confidence intervals"
+  ) +
+  theme_bw()
+```
+
+#### Inspect the model:
+
+```{r}
+plot(flipper_model_int)
+```
+
+Residuals versus fitted values
+
+```{r}
+
+int_results <- augment(flipper_model_int, data = adelie_dat)
+
+ggplot(
+  data = int_results,
+  mapping = aes(x = .fitted, y = .resid, color = sex)
+) +
+  geom_point(alpha = 0.6) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(x = "Fitted flipper length (mm)", y = "Residual (mm)", color = "Sex") +
+  theme_bw()
+```
+
+Residuals versus body mass
+
+```{r}
+ggplot(
+  data = int_results,
+  mapping = aes(x = body_mass_g, y = .resid, color = sex)
+) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "loess", formula = y ~ x, se = FALSE) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(x = "Body mass (g)", y = "Residual (mm)", color = "Sex") +
+  theme_bw()
+```
+
+#### Compare predictions from the additive and interaction model.
+
+Does the predicted difference between males and females change with body mass? Compare predictions at 3500 g and 3800 g, which are within both groups’ observed ranges. We first create a new dataset with the two masses for each sex and then we estimate predicted values of flipper length at those body masses for each sex:
+
+```{r}
+comparison_penguins <- expand_grid(
+  body_mass_g = c(3500, 3800),
+  sex = factor(
+    c("female", "male"),
+    levels = levels(adelie_dat$sex)
+  )
+)
+
+comparison_predictions <- comparison_penguins |>
+  mutate(
+    additive_prediction = augment(
+      flipper_model_add,
+      newdata = comparison_penguins
+    )$.fitted,
+    interaction_prediction = augment(
+      flipper_model_int,
+      newdata = comparison_penguins
+    )$.fitted
+  )
+
+comparison_predictions
+```
+
+the `$.fitted` extracts the fitted values from the object `augment()` returns.
+
+Next, calculate the predicted male-minus-female difference at each body mass for both models.
+
+```{r}
+prediction_differences <- comparison_predictions |>
+  pivot_wider(
+    names_from = sex,
+    values_from = c(additive_prediction, interaction_prediction)
+  ) |>
+  mutate(
+    additive_difference =
+      additive_prediction_male - additive_prediction_female,
+    interaction_difference =
+      interaction_prediction_male - interaction_prediction_female
+  ) |>
+  select(body_mass_g, additive_difference, interaction_difference)
+
+prediction_differences
+```
+
+Let's compare the two models:
+
+```{r}
+model_comparison <- bind_rows(
+  additive = glance(flipper_model_add),
+  interaction = glance(flipper_model_int),
+  .id = "model"
+) |>
+  select(model, nobs, r.squared, adj.r.squared, sigma)
+
+model_comparison
+```
+
+- **`nobs`:** Check that both models use the same number of observations.
+
+- **`r.squared`:** The proportion of observed flipper-length variation accounted for by the model.
+
+- **`adj.r.squared`:** Accounts for the additional coefficients; higher values indicate a better fit by this measure.
+
+- **`sigma`:** Residual standard error, in millimeters. Smaller values mean less residual variation.
+
+Adding an interaction cannot decrease ordinary R² when using the same observations, so an increase alone does not establish that the interaction is useful.
+
+Then examine the interaction coefficient and its uncertainty:
+
+```{r}
+tidy(flipper_model_int, conf.int = TRUE) |>
+  filter(term == "body_mass_g:sexmale") |>
+  select(term, estimate, conf.low, conf.high, p.value)
+```
+
+This coefficient estimates how much the **male body-mass slope differs from the female slope**, in mm/g. If its confidence interval includes zero, there is not clear evidence of different slopes at the 5% significance level.
+
+Let's plot the predictions from the two models side-by-side:
+
+```{r}
+comparison_grid <- adelie_dat |>
+  group_by(sex) |>
+  reframe(
+    body_mass_g = seq(
+      min(body_mass_g),
+      max(body_mass_g),
+      length.out = 100
+    )
+  )
+
+comparison_lines <- bind_rows(
+  additive = augment(
+    flipper_model_add,
+    newdata = comparison_grid
+  ),
+  interaction = augment(
+    flipper_model_int,
+    newdata = comparison_grid
+  ),
+  .id = "model"
+)
+
+ggplot(
+  data = adelie_dat,
+  mapping = aes(
+    x = body_mass_g,
+    y = flipper_length_mm,
+    color = sex
+  )
+) +
+  geom_point(alpha = 0.4) +
+  geom_line(
+    data = comparison_lines,
+    mapping = aes(y = .fitted, group = sex),
+    linewidth = 1.1
+  ) +
+  facet_wrap(~ model) +
+  labs(
+    x = "Body mass (g)",
+    y = "Flipper length (mm)",
+    color = "Sex",
+    title = "Comparing additive and interaction models",
+    subtitle = "Lines span each sex's observed body-mass range"
+  ) +
+  theme_bw()
+```
+
+We can also use `AIC()` to compare models. AIC stands for **Akaike’s Information Criterion** and balances model fit against complexity. **Lower AIC values indicate greater support relative to the other models being compared**, when fitted to the same response and observations. A difference of less than about 2 generally suggests similar support.
+
+```{r}
+AIC(flipper_model_add, flipper_model_int)
+```
+
+The models have similar support based on AIC. The interaction provides little improvement in fit relative to its added complexity, so we favor the simpler additive model. This does not prove that the slopes are identical, just evaluates support for the different models. We can compare more than two models, provided they are fitted to the **same response variable and the same observations.**
