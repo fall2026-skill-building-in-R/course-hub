@@ -1,10 +1,8 @@
 # ============================================================================
-# Multiple regression in R -- ANSWER KEY
+# Multiple regression in R 
 #
-# Questions are followed by worked code and example written answers.
-# Results use palmerpenguins::penguins, restricted to Chinstrap penguins.
+# The exercises use palmerpenguins::penguins, restricted to Chinstrap penguins.
 # Requires tidyverse, broom, and palmerpenguins to be installed.
-# Run sections interactively in RStudio to inspect tables and plots.
 # ============================================================================
 
 	library(tidyverse)
@@ -104,7 +102,7 @@
 # ----------------------------------------------------------------------------
 # 5. Examine model diagnostics 
 # ----------------------------------------------------------------------------
-# Use the additive model selected in the example answer above.
+# Use the additive model for the following diagnostics.
 # a. Inspect all four default diagnostic plots.
 
 
@@ -115,9 +113,10 @@
 	
 
 
-# d-e. Describe curvature, spread, group patterns, and the Q-Q plot.
-	
-	
+# d. Describe any patterns in the residuals, including curvature,
+#    changes in spread, or differences between sexes.
+
+# e. Examine the Q-Q plot. Are there substantial departures from the line?
 
 
 # ----------------------------------------------------------------------------
@@ -146,17 +145,19 @@
 	
 
 
-# f. Examine coefficients and interpret the coefficients.
+# f. Examine the coefficients from all three models.
+#    Interpret the intercept in the centered model and both slopes
+#    in the standardized model. Include units and explain what
+#    is held constant.
 	
 
 
 
-# g. Verify equality of fitted values, allowing for numerical rounding.
-	
-
-
-# h. Explain what happens to the slope if you center or standardize. 
-	
+# g. Verify that the fitted values are equal across all three models,
+# allowing for numerical rounding.
+   
+# h. Explain what happens to the slopes when you center or
+#    standardize the predictors.	
 
 # Optional check of the means, SDs, and fit summaries:
 	

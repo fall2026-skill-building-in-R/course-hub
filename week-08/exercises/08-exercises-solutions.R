@@ -4,7 +4,6 @@
 # Questions are followed by worked code and example written answers.
 # Results use palmerpenguins::penguins, restricted to Chinstrap penguins.
 # Requires tidyverse, broom, and palmerpenguins to be installed.
-# Run sections interactively in RStudio to inspect tables and plots.
 # ============================================================================
 
 	library(tidyverse)
@@ -257,7 +256,8 @@
 # g. Which model would you select, and why?
 	# Example answer: Select additive model because AIC support
 	# is similar and the additional interaction coefficient is uncertain.
-	# The simpler model is more parsimonious. No support for different slopes by sex. 
+	# The simpler model is more parsimonious. There is not clear evidence
+	# that the slopes differ between sexes.
 
 # ----------------------------------------------------------------------------
 # 5. Examine model diagnostics 
@@ -288,25 +288,22 @@
 	
 	p_residuals
 
-# d-e. Describe curvature, spread, group patterns, and the Q-Q plot.
-	
-	# Example interpretation: The points show substantial scatter. Relative
-	# to the shared fitted slope, females have a shallower estimated linear
-	# relationship and males a steeper one, so weak opposing residual trends
-	# by sex are worth inspecting. The interaction comparison did not provide
-	# clear evidence that separate population slopes are needed.
-	# Assess whether any apparent curve or change in spread is driven by a
-	# few observations, especially toward the ends of each group's mass range.
-	# Compare the Q-Q points with the reference line, including the tails.
-	# Mild departures alone would not automatically invalidate the model.
+# d. Describe any patterns in the residuals, including curvature,
+#    changes in spread, or differences between sexes.
 
-	# One reasonable follow-up is to inspect observations with high leverage
-	# or Cook's distance and evaluate sensitivity to influential observations.
-	# Do not delete observations simply because they have large residuals.
-	# Diagnostic plots do not establish independence: consider how penguins
-	# were sampled, including possible grouping by year or location.
+# Example answer: There is substantial scatter in the residuals.
+# The estimated relationships suggest a shallower slope for females
+# and a steeper slope for males, so look for opposing trends by sex.
+# Examine whether there is a curved pattern or a change in spread,
+# especially near the ends of each group's body-mass range.
 
-# Identify observations for possible follow-up; ranking is not a deletion rule.
+# e. Examine the Q-Q plot. Are there substantial departures from the line?
+
+# Answer: Most points follow the reference line fairly closely,
+# especially in the middle. There are some departures in both tails,
+# but no strong departure from normality is apparent.
+# The labeled observations have relatively large standardized residuals
+# and could be examined further.
 	
 	chinstrap_results |>
 	  arrange(desc(.cooksd)) |>
@@ -356,7 +353,10 @@
 	  data = chinstrap_dat
 	)
 
-# f. Examine coefficients and interpret the coefficients.
+# f. Examine the coefficients from all three models.
+#    Interpret the intercept in the centered model and both slopes
+#    in the standardized model. Include units and explain what
+#    is held constant.
 	
 	coefficient_comparison <- bind_rows(
 	  original = tidy(chinstrap_numeric, conf.int = TRUE),
@@ -377,8 +377,13 @@
 
 	# The bill_depth_z coefficient is approximately 2.161 mm per one-SD 
 	# increase in bill depth (about 1.135 mm), holding body mass constant. 
+	
 
 # g. Verify equality of fitted values, allowing for numerical rounding.
+	all.equal(
+  fitted(chinstrap_numeric),
+  fitted(chinstrap_centered)
+)
 	
 	all.equal(
 	  fitted(chinstrap_numeric),
