@@ -346,6 +346,9 @@ mgcv::k.check(m_gam24)
 # Compare effective degrees of freedom
 summary(m_gam)$s.table
 summary(m_gam24)$s.table
+
+AIC(m_gam)
+AIC(m_gam24)
 ```
 
 Compare predictions from both models at the same temperatures.
@@ -567,13 +570,9 @@ We now have two more variables in the parametric coefficient table:
 - `habitatSand` is the estimated difference in mean growth between Sand and Seagrass, holding temperature and length constant. Seagrass is the reference level because we set the factor levels explicitly.
 - The intercept applies to a 30 cm fish in Seagrass where the centered temperature smooth contributes zero. It is not automatically growth at 0 degrees C or at the mean temperature.
 
-The model is **additive**: the same temperature curve applies in each habitat, and the habitat coefficient shifts that curve vertically. We have not fitted a temperature-by-habitat interaction. 
+The model is **additive**: the same temperature curve applies in each habitat, and the habitat coefficient shifts that curve vertically. We have not fitted a temperature-by-habitat interaction.
 
-We now use `draw()` from `{gratia}` to plot the temperature effect after accounting for length and habitat in m_full.
- - `select = "s(temperature)"` selects the temperature smooth.
- - `smooth_col = ink, ci_col` = ink sets the curve and uncertainty ribbon colors.
- - `overall_uncertainty` = FALSE excludes uncertainty in the overall mean/intercept from the ribbon.
- - `rug = TRUE` adds ticks showing the observed temperatures.
+We now use `draw()` from `{gratia}` to plot the temperature effect after accounting for length and habitat in m_full. - `select = "s(temperature)"` selects the temperature smooth. - `smooth_col = ink, ci_col` = ink sets the curve and uncertainty ribbon colors. - `overall_uncertainty` = FALSE excludes uncertainty in the overall mean/intercept from the ribbon. - `rug = TRUE` adds ticks showing the observed temperatures.
 
 The y-axis shows how much the temperature smooth adds to or subtracts from predicted growth, in mm/month. For example, a value of +2 means the temperature term adds 2 mm/month to the prediction. The intercept, length, and habitat terms supply the remaining parts.
 
@@ -602,7 +601,7 @@ draw(m_two, select = c("s(temperature)", "s(length_cm)"),
      overall_uncertainty = FALSE, ncol = 2)
 ```
 
-Note that the `edf` for `s(length_cm)` is 1.00. This means this effect is linear, even though we are allowing it to be wiggly. We can revert to our original model that specifies length as a linear effect. 
+Note that the `edf` for `s(length_cm)` is 1.00. This means this effect is linear, even though we are allowing it to be wiggly. We can revert to our original model that specifies length as a linear effect.
 
 ## 5. Predict and visualize uncertainty
 
@@ -617,8 +616,6 @@ new_dat <- expand.grid(
   habitat = levels(fish$habitat)
 )
 
-new_dat$habitat <- factor(new_dat$habitat, levels = levels(fish$habitat))
-
 pred_fish <- fitted_values(m_full, data = new_dat,
                           scale = "response", ci_level = 0.95,
                           unconditional = TRUE)
@@ -627,16 +624,16 @@ head(pred_fish)
 
 `fitted_values()` returns the predictor values plus `.fitted`, `.se`, `.lower_ci`, and `.upper_ci`. The leading dots are part of the column names.
 
-`scale = "response"` requests predicted growth in mm/month. For our Gaussian identity-link model, the response and link scales coincide. 
+`scale = "response"` requests predicted growth in mm/month. For our Gaussian identity-link model, the response and link scales coincide.
 
-The ribbon shows approximate 95% uncertainty intervals for mean growth at each temperature, holding length and habitat at the specified values. It describes uncertainty in the estimated mean, rather than the variation expected among individual fish. 
+The ribbon shows approximate 95% uncertainty intervals for mean growth at each temperature, holding length and habitat at the specified values. It describes uncertainty in the estimated mean, rather than the variation expected among individual fish.
 
 We use unconditional = TRUE to also account for uncertainty in the estimated smoothing parameter.
 
 ```{r}
 ggplot(pred_fish, aes(x = temperature, y = .fitted)) +
   geom_ribbon(aes(ymin = .lower_ci, ymax = .upper_ci),
-              fill = ink, alpha = 0.18) +
+              fill = ink, alpha = 0.1) +
   geom_line(colour = ink, linewidth = 1) +
   geom_rug(data = fish, aes(x = temperature),
            inherit.aes = FALSE, alpha = 0.3) +
@@ -652,7 +649,7 @@ We have intentionally omitted raw observations from this plot: predictions condi
 
 ### Diagnose the fitted model
 
-Before interpreting our results, we need to check whether the model adequately describes the data. We will use appraise() from {gratia} to generate diagnostic plots, with type = "deviance" requesting deviance residuals. For our Gaussian model, these are equivalent to the usual observed-minus-predicted residuals. 
+Before interpreting our results, we need to check whether the model adequately describes the data. We will use appraise() from {gratia} to generate diagnostic plots, with type = "deviance" requesting deviance residuals. For our Gaussian model, these are equivalent to the usual observed-minus-predicted residuals.
 
 For this Gaussian model, inspect the residual Q-Q plot for major departures from normal errors and the residual-versus-fitted plot for remaining patterns or changing variance. The observed-versus-fitted plot describes agreement but is not sufficient by itself. `appraise()` supplies diagnostic plots; it does not replace checks of basis dimension or optimizer status. Here `converged` reports the fitting convergence flag and `outer.info$conv` reports the outer optimizer status for this REML fit. Convergence does not imply that the model is appropriate.
 
@@ -674,8 +671,7 @@ ggplot(residual_data, aes(x = temperature, y = residual)) +
        y = "Residual growth (mm/month)")
 ```
 
-We have checked whether `k` was adequate in our temperature-only model. Now we need to check it again because adding length and habitat can change the estimated temperature relationship and the residuals.
-`k.check()` returns the basis-dimension table without generating additional diagnostic plots.
+We have checked whether `k` was adequate in our temperature-only model. Now we need to check it again because adding length and habitat can change the estimated temperature relationship and the residuals. `k.check()` returns the basis-dimension table without generating additional diagnostic plots.
 
 ```{r}
 set.seed(316)
@@ -696,16 +692,17 @@ If the results suggest insufficient flexibility, increase `k`, refit the model, 
 The p-value is simulation-based, so it can vary between runs. Setting the seed makes the check reproducible.
 
 We can also ensure the model has converged:
+
 ```{r}
 # Inspect optimizer status separately from residual plots.
 m_full$converged
 m_full$outer.info$conv
 ```
 
-
 ### Deliberately restrict the basis, then increase it
+
 ```{r}
-m_small <- gam(growth ~ s(temperature, k = 4) + length_c + habitat,
+m_small <- gam(growth ~ s(temperature, k = 3) + length_c + habitat,
                data = fish, method = "REML")
 m_large <- gam(growth ~ s(temperature, k = 24) + length_c + habitat,
                data = fish, method = "REML")
@@ -717,6 +714,8 @@ mgcv::k.check(m_large)
 
 appraise(m_small, type = "deviance")
 appraise(m_large, type = "deviance")
+
+appraise(m_full, type = "deviance")
 
 # Compare all three fitted shapes at length = 30 cm in Seagrass.
 check_grid <- data.frame(
@@ -749,7 +748,6 @@ ggplot(basis_fits, aes(x = temperature, y = .fitted,
        y = "Predicted growth (mm/month)", linetype = NULL)
 ```
 
-
 Increasing `k` should be followed by a refit and a comparison of diagnostics and estimated relationships. We want sufficient capacity and stable conclusions, not the largest possible edf. There is no universal cutoff for an acceptable difference in predictions; judge it in response units and relative to uncertainty.
 
 ### Concurvity and dependence
@@ -761,10 +759,16 @@ Concurvity is the GAM analogue of collinearity: one model component can be appro
 concurvity(m_full, full = TRUE)
 ```
 
+|  |  |
+|----|----|
+| Near 0 | Little overlap; the term is distinguishable from the others |
+| Near 1 | Strong overlap; the term is difficult to distinguish from the others |
+| Exactly 1 | Complete overlap under that measure |
+
 These data contain independent fish. Repeated observations of the same fish, spatial clustering, or time-series observations would require additional consideration of dependence. Adding `s(year)` alone does not necessarily remove residual temporal autocorrelation. Likewise, GAM flexibility does not fix an inappropriate response distribution or missing predictors.
 
+### Optional extensions
 
-### Optional extensions 
 - Allow habitat-specific temperature curves with `habitat + s(temperature, by = habitat)`; this requires enough observations over the temperature range in each habitat.
 
 ## Sources and further learning
