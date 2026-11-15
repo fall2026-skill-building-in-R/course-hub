@@ -518,6 +518,8 @@ ggplot(
   theme_bw()
 ```
 
+![](http://127.0.0.1:45793/graphics/plot_zoom_png?width=479&height=265)
+
 #### Inspect the model:
 
 ```{r}

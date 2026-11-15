@@ -776,7 +776,7 @@ These data contain independent fish. Repeated observations of the same fish, spa
 This is an original teaching sequence with newly written explanations and a reproducible simulated example. It combines the introductory topics below rather than reproducing their text, slides, or exercises. Source links also provide deeper explanations beyond this short class.
 
 | Resource | Connection to this tutorial |
-|------------------------------------|------------------------------------|
+|----|----|
 | [Noam Ross, GAMs in R — Chapter 1](https://noamross.github.io/gams-in-r-course/chapter1/) | Linear-to-smooth progression; basis functions; complexity and penalties; multiple predictors. |
 | [Noam Ross, GAMs in R — Chapter 2](https://noamross.github.io/gams-in-r-course/chapter2/) | Interpreting smooths, uncertainty, model checking, and concurvity. |
 | [Michael Clark, Introduction to GAMs](https://m-clark.github.io/generalized-additive-models/introduction.html) | Connecting familiar regression to nonlinear predictor effects. |
