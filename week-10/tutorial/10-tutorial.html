@@ -1,0 +1,1511 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.18">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Linear mixed-effects models in R</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="10-tutorial_files/libs/clipboard/clipboard.min.js"></script>
+<script src="10-tutorial_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="10-tutorial_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="10-tutorial_files/libs/quarto-html/popper.min.js"></script>
+<script src="10-tutorial_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="10-tutorial_files/libs/quarto-html/anchor.min.js"></script>
+<link href="10-tutorial_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="10-tutorial_files/libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="10-tutorial_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="10-tutorial_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="10-tutorial_files/libs/bootstrap/bootstrap-22b4c1abd28e63ff45684f4962f09b6b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul class="collapse">
+  <li><a href="#mixed-effect-models-in-r" id="toc-mixed-effect-models-in-r" class="nav-link active" data-scroll-target="#mixed-effect-models-in-r">Mixed Effect Models in R</a>
+  <ul class="collapse">
+  <li><a href="#install-and-load-packages-download-dataset" id="toc-install-and-load-packages-download-dataset" class="nav-link" data-scroll-target="#install-and-load-packages-download-dataset">Install and load packages, download dataset</a></li>
+  <li><a href="#research-question-variables-and-grouping" id="toc-research-question-variables-and-grouping" class="nav-link" data-scroll-target="#research-question-variables-and-grouping">Research question, variables, and grouping</a></li>
+  </ul></li>
+  <li><a href="#initial-plotting" id="toc-initial-plotting" class="nav-link" data-scroll-target="#initial-plotting">Initial plotting</a></li>
+  <li><a href="#mixed-effect-model-with-a-random-intercept" id="toc-mixed-effect-model-with-a-random-intercept" class="nav-link" data-scroll-target="#mixed-effect-model-with-a-random-intercept">Mixed effect model with a random intercept</a>
+  <ul class="collapse">
+  <li><a href="#fitting-the-model" id="toc-fitting-the-model" class="nav-link" data-scroll-target="#fitting-the-model">Fitting the model</a></li>
+  <li><a href="#interpreting-the-output" id="toc-interpreting-the-output" class="nav-link" data-scroll-target="#interpreting-the-output">Interpreting the output</a></li>
+  <li><a href="#plotting-the-predictions" id="toc-plotting-the-predictions" class="nav-link" data-scroll-target="#plotting-the-predictions">Plotting the predictions</a></li>
+  <li><a href="#model-diagnostics" id="toc-model-diagnostics" class="nav-link" data-scroll-target="#model-diagnostics">Model diagnostics</a></li>
+  <li><a href="#next-steps" id="toc-next-steps" class="nav-link" data-scroll-target="#next-steps">Next steps</a></li>
+  <li><a href="#using-nlme" id="toc-using-nlme" class="nav-link" data-scroll-target="#using-nlme">Using {nlme}</a></li>
+  </ul></li>
+  <li><a href="#mixed-effect-models-with-a-random-intercept-and-slope" id="toc-mixed-effect-models-with-a-random-intercept-and-slope" class="nav-link" data-scroll-target="#mixed-effect-models-with-a-random-intercept-and-slope">Mixed effect models with a random intercept and slope</a>
+  <ul class="collapse">
+  <li><a href="#fitting-the-model-1" id="toc-fitting-the-model-1" class="nav-link" data-scroll-target="#fitting-the-model-1">Fitting the model</a></li>
+  <li><a href="#interpreting-the-output-1" id="toc-interpreting-the-output-1" class="nav-link" data-scroll-target="#interpreting-the-output-1">Interpreting the output</a></li>
+  <li><a href="#plotting-the-predictions-1" id="toc-plotting-the-predictions-1" class="nav-link" data-scroll-target="#plotting-the-predictions-1">Plotting the predictions</a></li>
+  <li><a href="#model-diagnostics-1" id="toc-model-diagnostics-1" class="nav-link" data-scroll-target="#model-diagnostics-1">Model diagnostics</a></li>
+  <li><a href="#using-nlme-1" id="toc-using-nlme-1" class="nav-link" data-scroll-target="#using-nlme-1">Using {nlme}</a></li>
+  </ul></li>
+  <li><a href="#mixed-effect-models-with-a-gam" id="toc-mixed-effect-models-with-a-gam" class="nav-link" data-scroll-target="#mixed-effect-models-with-a-gam">Mixed effect models with a gam()</a>
+  <ul class="collapse">
+  <li><a href="#predictions" id="toc-predictions" class="nav-link" data-scroll-target="#predictions">Predictions</a></li>
+  <li><a href="#model-diagnostics-2" id="toc-model-diagnostics-2" class="nav-link" data-scroll-target="#model-diagnostics-2">Model diagnostics</a></li>
+  </ul></li>
+  <li><a href="#next-steps-1" id="toc-next-steps-1" class="nav-link" data-scroll-target="#next-steps-1">Next steps</a></li>
+  </ul>
+</nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Linear mixed-effects models in R</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="mixed-effect-models-in-r" class="level1">
+<h1>Mixed Effect Models in R</h1>
+<p>In this tutorial, we’ll use measurements of Galápagos finches to ask how beak height relates to wing length. These data are available from <a href="http://bioquest.org/birdd/morph.php">BIRDD: Beagle Investigation Return with Darwinian Data</a>. These data are originally from <a href="http://mbe.oxfordjournals.org/content/18/3/299.full">Sato et al.&nbsp;2000 Mol. Biol. Evol.</a>.</p>
+<p>Each row of our dataset contains measurements from one bird, and each taxonomic group includes observations from several individuals. We will start by plotting the data. We will then fit a model that asks whether taxonomic groups differ in expected beak height at a given wing length (random intercept model). We will then fit a model to ask whether beak height changes with wing length at different rates across groups (random intercept and random slope model). We’ll fit and plot both models to see what changes when we let the slopes vary by group.</p>
+<section id="install-and-load-packages-download-dataset" class="level2">
+<h2 class="anchored" data-anchor-id="install-and-load-packages-download-dataset">Install and load packages, download dataset</h2>
+<p>The code below will download the finch dataset from Sean Anderson’s <a href="https://github.com/fall2026-skill-building-in-R/glmm-course">glmm-course github repo</a> that has been forked (copied) to our Skill Building in R GitHub organization. This tutorial is based on this 2-day workshop on mixed effect models and has lots more information on these models (and generalized linear mixed effect models) if you are interested or need to use these models for your research.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># install packages if needed</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">requireNamespace</span>(<span class="st">"pak"</span>, <span class="at">quietly =</span> <span class="cn">TRUE</span>)) {</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">install.packages</span>(<span class="st">"pak"</span>)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>pak<span class="sc">::</span><span class="fu">pak</span>(<span class="fu">c</span>(<span class="st">"dplyr"</span>, <span class="st">"ggplot2"</span>, <span class="st">"lme4"</span>, <span class="st">"nlme"</span>, <span class="st">"readr"</span>, <span class="st">"broom.mixed"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>ℹ Loading metadata database</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>✔ Loading metadata database ... done</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code></code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code> </code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>→ Package library at '/Library/Frameworks/R.framework/Versions/4.5-arm64/Resources/library'.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>ℹ No downloads are needed</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>✔ 6 pkgs + 54 deps: kept 50 [4.3s]</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># load packages</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'dplyr'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:stats':
+
+    filter, lag</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:base':
+
+    intersect, setdiff, setequal, union</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(here)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>here() starts at /Users/jenniferbigman/Library/CloudStorage/Dropbox/UD/teaching/Skill Building in R/Fall 2026/course-hub</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(readr)</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(nlme)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'nlme'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:dplyr':
+
+    collapse</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(lme4)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: Matrix</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'lme4'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:nlme':
+
+    lmList</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(broom)</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(broom.mixed)</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="co"># download data from GitHub</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>finch_file <span class="ot">&lt;-</span> <span class="st">"Morph_for_Sato.csv"</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">file.exists</span>(finch_file)) {</span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>  finch_url <span class="ot">&lt;-</span> <span class="fu">paste0</span>(</span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>  <span class="st">"https://raw.githubusercontent.com/fall2026-skill-building-in-R/glmm-course/"</span>,</span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>  <span class="st">"330571394eeb595c0e05ba5b1d282b8d003f28c7/data/raw/Morph_for_Sato.csv"</span></span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>  finch_file <span class="ot">&lt;-</span> <span class="fu">tempfile</span>(<span class="at">fileext =</span> <span class="st">".csv"</span>)</span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">download.file</span>(finch_url, finch_file, <span class="at">mode =</span> <span class="st">"wb"</span>, <span class="at">quiet =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a>finch_raw <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(finch_file, <span class="at">strip.white =</span> <span class="cn">TRUE</span>, <span class="at">na.strings =</span> <span class="fu">c</span>(<span class="st">""</span>, <span class="st">"NA"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>If downloading the data from GitHub remote did not work, use this code:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>finch_raw <span class="ot">&lt;-</span> readr<span class="sc">::</span><span class="fu">read_csv</span>(</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>  here<span class="sc">::</span><span class="fu">here</span>(<span class="st">"week-10"</span>, <span class="st">"tutorial"</span>, <span class="st">"Morph_for_Sato.csv"</span>)</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>) <span class="co"># the warning here is OK</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: One or more parsing issues, call `problems()` on your data frame for details,
+e.g.:
+  dat &lt;- vroom(...)
+  problems(dat)</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Rows: 2826 Columns: 20
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr (10): Source, IslandID, TaxonOrig, GenusL69, SpeciesL69, SubspL69, Speci...
+dbl (10): BodyL, WingL, TailL, BeakW, BeakH, LBeakL, UBeakL, N-UBkL, TarsusL...
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+</div>
+</div>
+</section>
+<section id="research-question-variables-and-grouping" class="level2">
+<h2 class="anchored" data-anchor-id="research-question-variables-and-grouping">Research question, variables, and grouping</h2>
+<p><strong>Question.</strong> How does beak height relate to wing length?</p>
+<p>One row is one morphology record. Taxon is the grouping variable, as site was in our eelgrass example. Birds in the same taxon share biological characteristics and may be more similar than birds from different taxa.</p>
+<p><strong>Response.</strong> beak height (mm). Predictor: wing length (mm). <strong>Grouping variable.</strong> original taxon label (includes some subspecies labels).</p>
+<p>Our first step is to wrangle our dataset. We need to trim the taxon labels and ensure the measurements used on the log scale are positive.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(finch_raw)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 2,826
+Columns: 20
+$ Source     &lt;chr&gt; "Lack CAS", "Lack CAS", "Lack CAS", "Lack CAS", "Lack CAS",…
+$ IslandID   &lt;chr&gt; "Cocos", "Cocos", "Cocos", "Cocos", "Cocos", "Cocos", "Coco…
+$ TaxonOrig  &lt;chr&gt; "Pinaroloxias inornata", "Pinaroloxias inornata", "Pinarolo…
+$ GenusL69   &lt;chr&gt; "Pinaroloxias", "Pinaroloxias", "Pinaroloxias", "Pinaroloxi…
+$ SpeciesL69 &lt;chr&gt; "inornata", "inornata", "inornata", "inornata", "inornata",…
+$ SubspL69   &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
+$ SpeciesID  &lt;chr&gt; "Pin.ino", "Pin.ino", "Pin.ino", "Pin.ino", "Pin.ino", "Pin…
+$ SubspID    &lt;chr&gt; "Pin.ino", "Pin.ino", "Pin.ino", "Pin.ino", "Pin.ino", "Pin…
+$ Sex        &lt;chr&gt; "M", "M", "F", "M", "M", "M", "M", "M", "M", "M", "M", "M",…
+$ Plumage    &lt;chr&gt; "Black", "Black", NA, "Black", "Black", "Black", "Black", "…
+$ BodyL      &lt;dbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
+$ WingL      &lt;dbl&gt; 70, NA, 66, 68, 68, 69, 67, 68, 68, 69, 68, 69, 69, 67, 70,…
+$ TailL      &lt;dbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
+$ BeakW      &lt;dbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
+$ BeakH      &lt;dbl&gt; 6.5, NA, 6.1, 6.0, 6.2, 6.2, 6.0, 5.9, 6.0, 6.4, 5.8, 5.8, …
+$ LBeakL     &lt;dbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
+$ UBeakL     &lt;dbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
+$ `N-UBkL`   &lt;dbl&gt; 10.0, 10.0, 10.5, 10.9, 11.0, NA, 10.1, 10.4, 10.9, 9.0, 10…
+$ TarsusL    &lt;dbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
+$ MToeL      &lt;dbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(finch_raw) <span class="ot">&lt;-</span> <span class="fu">tolower</span>(<span class="fu">names</span>(finch_raw))</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>finch_raw <span class="ot">&lt;-</span> finch_raw <span class="sc">|&gt;</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">select</span>(islandid, taxonorig, genusl69, speciesl69, sex, wingl, beakh, ubeakl) <span class="sc">|&gt;</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">rename</span>(<span class="at">taxon =</span> taxonorig, <span class="at">genus =</span> genusl69, <span class="at">species =</span> speciesl69)</span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>finch_raw <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="fu">na.omit</span>(finch_raw)) <span class="co"># remove all rows with any NAs to make this simple</span></span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a>finch_raw <span class="ot">&lt;-</span> dplyr<span class="sc">::</span><span class="fu">filter</span>(finch_raw, genus <span class="sc">==</span> <span class="st">"Geospiza"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">as_tibble</span>()</span>
+<span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-12"><a href="#cb28-12" aria-hidden="true" tabindex="-1"></a>d <span class="ot">&lt;-</span> finch_raw</span>
+<span id="cb28-13"><a href="#cb28-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-14"><a href="#cb28-14" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(d)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 1,434
+Columns: 8
+$ islandid &lt;chr&gt; "DMaj", "DMaj", "DMaj", "DMaj", "DMaj", "DMaj", "DMaj", "DMaj…
+$ taxon    &lt;chr&gt; "Geospiza fortis", "Geospiza fortis", "Geospiza fortis", "Geo…
+$ genus    &lt;chr&gt; "Geospiza", "Geospiza", "Geospiza", "Geospiza", "Geospiza", "…
+$ species  &lt;chr&gt; "fortis", "fortis", "fortis", "fortis", "fortis", "fortis", "…
+$ sex      &lt;chr&gt; "M", "M", "M", "M", "M", "M", "M", "M", "M", "M", "M", "M", "…
+$ wingl    &lt;dbl&gt; 69, 65, 65, 68, 66, 68, 67, 69, 67, 68, 66, 70, 66, 66, 68, 6…
+$ beakh    &lt;dbl&gt; 10.8, 10.3, 10.0, 9.5, 11.0, 10.4, 11.3, 10.6, 10.8, 10.3, 9.…
+$ ubeakl   &lt;dbl&gt; 15.2, 14.2, 13.6, 13.5, 15.0, 15.0, 15.7, 15.3, 15.5, 15.2, 1…</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="initial-plotting" class="level1">
+<h1>Initial plotting</h1>
+<p>The first rule of any data analysis is to plot the data. It’s a common saying that this is also the second and third rule of data analysis. Never underestimate the value of plotting the data creatively. Occasionally, we fit statistical models in between plotting the data.</p>
+<p>We are going to look at predicting the height of birds’ beaks based on their measured wing length. And we have measurements for a variety of species.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(d, <span class="fu">aes</span>(wingl, beakh, <span class="at">colour =</span> taxon)) <span class="sc">+</span> <span class="fu">geom_point</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="10-tutorial_files/figure-html/unnamed-chunk-4-1.png" class="img-fluid figure-img" width="864"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>We could fit a model to these data as they are plotted here but we might want to consider transforming our predictor variable (wing length) and/or our response variable (beak height).</p>
+<p>Log transformations (using either base 10 or natural logs) are commonly used when variables such as wing length and beak height scale proportionally, when measurements are right-skewed, or when a relationship looks curved on the original scale. Logging compresses larger values more than smaller ones and can make a relationship easier to model with a straight line.</p>
+<p>Let’s plot our data with that transformation:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(d, <span class="fu">aes</span>(</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">log</span>(wingl), <span class="fu">log</span>(beakh), <span class="at">colour =</span> taxon)) <span class="sc">+</span> <span class="co"># exercise</span></span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="10-tutorial_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid figure-img" width="864"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>One option would be to fit a single linear regression to these data. We can quickly do that from within ggplot2 (good to just visualize, won’t give you any information other than drawing a line). Let’s look at what that would look like:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(d, <span class="fu">aes</span>(<span class="fu">log</span>(wingl), <span class="fu">log</span>(beakh))) <span class="sc">+</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">colour =</span> taxon)) <span class="sc">+</span></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"lm"</span>) <span class="co"># method = [l]inear [m]odel</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`geom_smooth()` using formula = 'y ~ x'</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="10-tutorial_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid figure-img" width="864"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Notice that I moved <code>aes(colour = taxon)</code> within the function <code>geom_point</code>. If I do not do that, we get a separate regression line for each taxon, each with its own intercept and slope estimated from that taxon’s birds.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(d, <span class="fu">aes</span>(<span class="fu">log</span>(wingl), <span class="fu">log</span>(beakh), <span class="at">colour =</span> taxon)) <span class="sc">+</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span></span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"lm"</span>, <span class="at">se =</span> <span class="cn">FALSE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`geom_smooth()` using formula = 'y ~ x'</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="10-tutorial_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid figure-img" width="864"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Neither of these approaches is probably ideal. Why is that?</p>
+<p>One line for all birds (complete pooling) assumes every taxon has the same expected beak height at a given wing length. That can hide real differences among taxa.</p>
+<p>A separate line for each taxon (no pooling) estimates each intercept and slope using only that taxon’s birds. For a taxon with just a few birds or a narrow range of wing lengths, the fitted line can be unstable.</p>
+</section>
+<section id="mixed-effect-model-with-a-random-intercept" class="level1">
+<h1>Mixed effect model with a random intercept</h1>
+<section id="fitting-the-model" class="level2">
+<h2 class="anchored" data-anchor-id="fitting-the-model">Fitting the model</h2>
+<p>A better approach might be to use a mixed effects model. Let’s work through that. We are going to use the <code>{lme4}</code> package as our default option for fitting these types of models. Later we will explore other packages.</p>
+<p>Let’s start from the regression syntax we already know.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>m_pooled <span class="ot">&lt;-</span> <span class="fu">lm</span>(<span class="fu">log</span>(beakh) <span class="sc">~</span> <span class="fu">log</span>(wingl), <span class="at">data =</span> d)</span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a><span class="fu">coef</span>(m_pooled)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>(Intercept)  log(wingl) 
+  -8.746285    2.629295 </code></pre>
+</div>
+</div>
+<p>Now we are going to fit a mixed effects model where we let each taxon have its own intercept. And we will constrain those different intercepts by a normal distribution so that information is partially shared across taxa (partial pooling).</p>
+<p>This is often referred to as a “random intercept” model.</p>
+<p>The workhorse function of the <code>{lme4}</code> package for fitting mixed effects models is the function <code>lmer()</code>. You can pronounce it however you like. Some people would say “lemur”, others “ell-em-ee-are”. The syntax is just like <code>lm</code> with the addition of a formula for the “random effects”.</p>
+<p>You can find extensive details in the documentation <code>?lme4::lmer</code>.</p>
+<p>In the code below, notice the addition <code>+ (1 | taxon)</code>. The <code>1</code> refers to “intercept” and the <code>| taxon</code> tells the function that you want to let the intercept vary by the values in the <code>taxon</code> column.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>m_intercept <span class="ot">&lt;-</span> lme4<span class="sc">::</span><span class="fu">lmer</span>(</span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">log</span>(beakh) <span class="sc">~</span> <span class="fu">log</span>(wingl) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> taxon),</span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> d)</span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m_intercept)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Linear mixed model fit by REML ['lmerMod']
+Formula: log(beakh) ~ log(wingl) + (1 | taxon)
+   Data: d
+
+REML criterion at convergence: -3656.1
+
+Scaled residuals: 
+    Min      1Q  Median      3Q     Max 
+-6.2724 -0.6086 -0.0306  0.6211  3.6835 
+
+Random effects:
+ Groups   Name        Variance Std.Dev.
+ taxon    (Intercept) 0.050586 0.22491 
+ Residual             0.004278 0.06541 
+Number of obs: 1434, groups:  taxon, 15
+
+Fixed effects:
+            Estimate Std. Error t value
+(Intercept) -2.60848    0.18819  -13.86
+log(wingl)   1.18318    0.04232   27.96
+
+Correlation of Fixed Effects:
+           (Intr)
+log(wingl) -0.951</code></pre>
+</div>
+</div>
+</section>
+<section id="interpreting-the-output" class="level2">
+<h2 class="anchored" data-anchor-id="interpreting-the-output">Interpreting the output</h2>
+<p>Let’s read the summary together.</p>
+<p>The summary tells us that we fit a ‘Linear mixed models fit by REML’ and that the class of the object is [‘lmerMod’]. It also reports the forumla we fit and the data.</p>
+<p>We then have <code>REML criterion at convergence: -3656.1</code> which is the final value of the criterion lmer() minimized to estimate the random-effect and residual variances. It has no useful standalone interpretation as a measure of model fit (could compare like AIC but we just use AIC).</p>
+<p>We then have <code>Scaled residuals:</code> which is just like the <code>lm()</code>.</p>
+<p>Next, we have a new section, <code>Random effects:</code>. This section tells us how much variation there is among groups and how much remains within groups. In our model, it shows how much the taxa’s fitted lines are shifted up or down and how much individual birds scatter around their own taxon’s line. You can take the square root of the variance column and it equals the Std. Dev. column.</p>
+<p>Here, the standard deviation (SD) of our taxon intercept = 0.225. At the same wing length, a taxon’s expected log beak height typically differs from the overall fitted line by about 0.225 log units. This describes how much the taxon lines shift up or down.</p>
+<p>The residual SD = 0.065. An individual bird’s log beak height typically differs from its own taxon’s fitted line by about 0.065 log units. This describes how much birds scatter around their taxon line.</p>
+<p>These results tell us that the random intercept captures substantial variation in expected beak height among taxa, even after accounting for wing length because the taxon SD and residual SD values are not close to zero. If the taxon intercept SD were close to zero, the model would be estimating very little difference among taxa at the same wing length. The taxon-specific lines would nearly overlap, so the random intercept would add little to the fitted predictions. To see if you need a random intercept (or both random intercept and slope) fitting a model with and without these random effects and comparing via AIC is the best way to judge.</p>
+<p>We then have our <code>Fixed effects:</code> section, which gives us the estimated intercept and slope for the overall fitted line. The intercept is the expected log beak height at the reference wing length. The slope is the estimated change in log beak height for a one-unit increase in log wing length. In this random-intercept model, all taxa share that slope.</p>
+<p>We are also told how many rows of data we have <code>Number of obs: 1434</code> and how many random intercept groups we have <code>taxon, 15</code>.</p>
+<p>Finally, the <code>Correlation of Fixed Effects:</code> examines the correlation between the slope and intercept. Our model shows a very high correlation. This isn’t great, and if this correlation is very strong and our model is complicated it might result in computational problems. Later we will talk about ways of solving this (hint: we’ll “center” the predictor by subtracting the mean).</p>
+<p>We can use functions in the <code>{lme4}</code> package to get the fixed and random effect sizes:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>lme4<span class="sc">::</span><span class="fu">fixef</span>(m_intercept)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>(Intercept)  log(wingl) 
+  -2.608477    1.183178 </code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>intercept <span class="ot">&lt;-</span> lme4<span class="sc">::</span><span class="fu">fixef</span>(m_intercept)[[<span class="st">"(Intercept)"</span>]]</span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a><span class="fu">exp</span>(intercept)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.07364663</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a>lme4<span class="sc">::</span><span class="fu">ranef</span>(m_intercept) <span class="co"># gives the estimated random intercept adjustment for each taxon</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>$taxon
+                                 (Intercept)
+Geospiza acutirostris            -0.22040597
+Geospiza conirostris conirostris  0.20390888
+Geospiza conirostris propinqua    0.05454315
+Geospiza debilirostris           -0.23258623
+Geospiza fortis                   0.08727254
+Geospiza fortis fortis            0.10288834
+Geospiza fortis fratercula        0.18804066
+Geospiza fuliginosa              -0.19929467
+Geospiza fuliginosa acutirostris -0.14120564
+Geospiza fuliginosa minor        -0.19349335
+Geospiza fuliginosa parvula      -0.12415845
+Geospiza magnirostris             0.38471062
+Geospiza scandens                -0.17092959
+Geospiza scandens scandens       -0.16857032
+Geospiza strenua                  0.42928003
+
+with conditional variances for "taxon" </code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="fu">coef</span>(m_intercept) <span class="co"># gives you total intercept (global/population + group-level added)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>$taxon
+                                 (Intercept) log(wingl)
+Geospiza acutirostris              -2.828883   1.183178
+Geospiza conirostris conirostris   -2.404568   1.183178
+Geospiza conirostris propinqua     -2.553934   1.183178
+Geospiza debilirostris             -2.841063   1.183178
+Geospiza fortis                    -2.521204   1.183178
+Geospiza fortis fortis             -2.505589   1.183178
+Geospiza fortis fratercula         -2.420436   1.183178
+Geospiza fuliginosa                -2.807772   1.183178
+Geospiza fuliginosa acutirostris   -2.749683   1.183178
+Geospiza fuliginosa minor          -2.801970   1.183178
+Geospiza fuliginosa parvula        -2.732635   1.183178
+Geospiza magnirostris              -2.223766   1.183178
+Geospiza scandens                  -2.779407   1.183178
+Geospiza scandens scandens         -2.777047   1.183178
+Geospiza strenua                   -2.179197   1.183178
+
+attr(,"class")
+[1] "coef.mer"</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb48"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="co"># notice the slope is the same!</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>Let’s make some plots of these random intercepts.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb49"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a> <span class="co"># row.names(.) means the row names of the data frame:</span></span>
+<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a>re <span class="ot">&lt;-</span> lme4<span class="sc">::</span><span class="fu">ranef</span>(m_intercept)<span class="sc">$</span>taxon <span class="sc">|&gt;</span></span>
+<span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a>  tibble<span class="sc">::</span><span class="fu">rownames_to_column</span>(<span class="at">var =</span> <span class="st">"taxon"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb49-4"><a href="#cb49-4" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">rename</span>(<span class="at">intercept_adjustment =</span> <span class="st">`</span><span class="at">(Intercept)</span><span class="st">`</span>)</span>
+<span id="cb49-5"><a href="#cb49-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-6"><a href="#cb49-6" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(re, <span class="fu">aes</span>(<span class="at">x =</span> <span class="dv">1</span>, <span class="at">y =</span> intercept_adjustment)) <span class="sc">+</span></span>
+<span id="cb49-7"><a href="#cb49-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.7</span>) <span class="sc">+</span></span>
+<span id="cb49-8"><a href="#cb49-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="cn">NULL</span>, <span class="at">y =</span> <span class="st">"Taxon intercept adjustment (log units)"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="10-tutorial_files/figure-html/unnamed-chunk-11-1.png" class="img-fluid figure-img" width="864"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>What is the mean of these random intercepts?</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb50"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="fu">round</span>(<span class="fu">mean</span>(lme4<span class="sc">::</span><span class="fu">ranef</span>(m_intercept)<span class="sc">$</span>taxon[, <span class="dv">1</span>]), <span class="dv">2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0</code></pre>
+</div>
+</div>
+<p>The mean is 0 because the random intercepts are adjustments around the overall intercept. The overall intercept sets the baseline, and each taxon’s adjustment shifts its line up or down from there.</p>
+<p>There are a lot of details in the output from <code>summary.merMod</code> and usually a lot more decimal places than are reasonable.</p>
+<p>A useful alternative is the function <code>arm::display</code> which focuses on the important pieces.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb52"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a>arm<span class="sc">::</span><span class="fu">display</span>(m_intercept)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>lme4::lmer(formula = log(beakh) ~ log(wingl) + (1 | taxon), data = d)
+            coef.est coef.se
+(Intercept) -2.61     0.19  
+log(wingl)   1.18     0.04  
+
+Error terms:
+ Groups   Name        Std.Dev.
+ taxon    (Intercept) 0.22    
+ Residual             0.07    
+---
+number of obs: 1434, groups: taxon, 15
+AIC = -3648.1, DIC = -3672.8
+deviance = -3664.4 </code></pre>
+</div>
+</div>
+<p>I tend not to load the package arm, and instead call its functions directly (e.g.&nbsp;<code>arm::display</code>) because the package loads many other functions and packages that we don’t need.</p>
+</section>
+<section id="plotting-the-predictions" class="level2">
+<h2 class="anchored" data-anchor-id="plotting-the-predictions">Plotting the predictions</h2>
+<p>Let’s look at what we just did. We’ll start by plotting the predictions. To do that, we’ll use the <code>predict</code> function. Because we are applying it to an object of class <code>merMod</code> (meaning it was created by the <code>lmer</code> function), we can get details on that function at <code>?predict.merMod</code>.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb54"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a>d<span class="sc">$</span>predict_lmer <span class="ot">&lt;-</span> <span class="fu">predict</span>(m_intercept)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>Now let’s plot those predictions:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb55"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(d, <span class="fu">aes</span>(<span class="fu">log</span>(wingl), <span class="fu">log</span>(beakh), <span class="at">colour =</span> taxon)) <span class="sc">+</span></span>
+<span id="cb55-2"><a href="#cb55-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.1</span>) <span class="sc">+</span> <span class="co"># alpha = 0.1 make 10% opaque</span></span>
+<span id="cb55-3"><a href="#cb55-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">y =</span> predict_lmer))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="10-tutorial_files/figure-html/unnamed-chunk-15-1.png" class="img-fluid figure-img" width="864"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>What do you notice about the intercepts? What do you notice about the slopes? How does this compare to the previous 2 models we fit?</p>
+<p>There is another kind of prediction we can make with a mixed effects model. We can make a prediction at the “global” or “population” level. This is our expectation if we sampled a new taxon of unknown identity. With the lme4 package, we can do that by adding the argument <code>re.form = NA</code> to the <code>predict</code> function:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb56"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a>d<span class="sc">$</span>predict_lmer_population <span class="ot">&lt;-</span> <span class="fu">predict</span>(m_intercept, <span class="at">re.form =</span> <span class="cn">NA</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>Let’s add the population prediction to the plot in black with a thicker line:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb57"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(d, <span class="fu">aes</span>(<span class="fu">log</span>(wingl), <span class="fu">log</span>(beakh), <span class="at">colour =</span> taxon)) <span class="sc">+</span></span>
+<span id="cb57-2"><a href="#cb57-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.1</span>) <span class="sc">+</span></span>
+<span id="cb57-3"><a href="#cb57-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">y =</span> predict_lmer)) <span class="sc">+</span></span>
+<span id="cb57-4"><a href="#cb57-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">y =</span> predict_lmer_population), <span class="at">colour =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="dv">1</span>) </span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="10-tutorial_files/figure-html/unnamed-chunk-17-1.png" class="img-fluid figure-img" width="864"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="model-diagnostics" class="level2">
+<h2 class="anchored" data-anchor-id="model-diagnostics">Model diagnostics</h2>
+<p>Let’s inspect the model.</p>
+<p>We can use the following code like we did with linear models, but it only gives us the residual vs.&nbsp;fitted plots:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb58"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(m_intercept)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="10-tutorial_files/figure-html/unnamed-chunk-18-1.png" class="img-fluid figure-img" width="864"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Let’s dive deeper:</p>
+<p>First, let’s look for patterns in the residuals and check whether their spread changes. We will plot the residuals against <strong>fitted log beak height</strong> to check whether their spread changes across predicted values. Then we’ll plot the residuals against <strong>log wing length</strong> to see whether the model systematically overpredicts or underpredicts beak height at certain wing lengths.</p>
+<p>Each point is one bird. Its residual is its observed log beak height minus the value predicted by its taxon’s fitted line. In both plots, look for points scattered around zero with roughly constant vertical spread. A curve suggests a pattern the model missed, while a fan shape suggests changing residual variance.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb59"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a>finch_diagnostics <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb59-2"><a href="#cb59-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">fitted =</span> <span class="fu">fitted</span>(m_intercept),</span>
+<span id="cb59-3"><a href="#cb59-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">residual =</span> <span class="fu">residuals</span>(m_intercept),</span>
+<span id="cb59-4"><a href="#cb59-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">log_wing =</span> <span class="fu">model.frame</span>(m_intercept)[[<span class="st">"log(wingl)"</span>]]</span>
+<span id="cb59-5"><a href="#cb59-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb59-6"><a href="#cb59-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb59-7"><a href="#cb59-7" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(finch_diagnostics, <span class="fu">aes</span>(<span class="at">x =</span> fitted, <span class="at">y =</span> residual)) <span class="sc">+</span></span>
+<span id="cb59-8"><a href="#cb59-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.4</span>) <span class="sc">+</span></span>
+<span id="cb59-9"><a href="#cb59-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> <span class="dv">0</span>, <span class="at">linetype =</span> <span class="st">"dashed"</span>) <span class="sc">+</span></span>
+<span id="cb59-10"><a href="#cb59-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Fitted log beak height"</span>, <span class="at">y =</span> <span class="st">"Residual"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="10-tutorial_files/figure-html/unnamed-chunk-19-1.png" class="img-fluid figure-img" width="864"></p>
+</figure>
+</div>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb60"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(finch_diagnostics, <span class="fu">aes</span>(<span class="at">x =</span> log_wing, <span class="at">y =</span> residual)) <span class="sc">+</span></span>
+<span id="cb60-2"><a href="#cb60-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.4</span>) <span class="sc">+</span></span>
+<span id="cb60-3"><a href="#cb60-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> <span class="dv">0</span>, <span class="at">linetype =</span> <span class="st">"dashed"</span>) <span class="sc">+</span></span>
+<span id="cb60-4"><a href="#cb60-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Log wing length"</span>, <span class="at">y =</span> <span class="st">"Residual"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="10-tutorial_files/figure-html/unnamed-chunk-19-2.png" class="img-fluid figure-img" width="864"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>In both plots, the residuals are mostly scattered around zero, with no obvious overall curve. That suggests the model isn’t consistently overpredicting or underpredicting beak height across the range of fitted values or wing lengths.</p>
+<p>The spread looks somewhat wider in the middle, especially around fitted log beak heights of 2.4–2.6. There are also more birds in that range, so I’d describe this as a possible difference in residual spread.</p>
+<p>Now, let’s inspect the q-q plot:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb61"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb61-1"><a href="#cb61-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(finch_diagnostics, <span class="fu">aes</span>(<span class="at">sample =</span> residual)) <span class="sc">+</span></span>
+<span id="cb61-2"><a href="#cb61-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stat_qq</span>() <span class="sc">+</span></span>
+<span id="cb61-3"><a href="#cb61-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stat_qq_line</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="10-tutorial_files/figure-html/unnamed-chunk-20-1.png" class="img-fluid figure-img" width="864"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Most birds’ residuals follow the line fairly closely, so the normal distribution describes the middle of the residual distribution reasonably well. At the ends, some birds’ beak heights are farther from their predicted values than we’d expect under the model’s normality assumption.</p>
+</section>
+<section id="next-steps" class="level2">
+<h2 class="anchored" data-anchor-id="next-steps">Next steps</h2>
+<p>What may want to consider a few things:</p>
+<p>So far, we’ve given each taxon its own intercept and used the same slope for all taxa. We can also let the slope vary so that the relationship between wing length and beak height can be steeper in some taxa than in others.</p>
+<p>One option is a fixed-effect interaction (taxon * log(wingl)), which estimates each taxon’s slope using only its own observations. Another is a random-slope model (log(wingl) + (1 + log(wingl) | taxon)), which uses partial pooling. Taxa with less information about their slopes tend to have estimates closer to the overall slope. The choice depends on your research question and how much information you have to estimate a separate slope for each taxon.</p>
+<p>Both approaches let the relationship between wing length and beak height differ among taxa. The choice is how you want to estimate those differences.</p>
+<ul>
+<li><p>Fixed-effect interaction (taxon * log(wingl)) makes sense when your question is about specific taxa and you have enough birds across a useful range of wing lengths in each taxon. For example, “How much steeper is the slope for G. fortis than for G. scandens?” Each taxon’s slope is estimated from its own observations.</p></li>
+<li><p>Random slopes (log(wingl) + (1 + log(wingl) | taxon)) make sense when you want to estimate the overall slope and how much slopes vary among taxa. The model also gives each taxon its own slope estimate. Through partial pooling, a taxon with only a few birds or a narrow range of wing lengths generally gets an estimate closer to the overall slope. If you have taxa with few data points, you’d want to consider fitting random intercepts and slopes to help estimate the effect sizes for data-poor taxa.</p></li>
+</ul>
+<p>We might also want to try centering the predictor to reduce correlation between the intercept and slope and make the intercept more interpretable.</p>
+</section>
+<section id="using-nlme" class="level2">
+<h2 class="anchored" data-anchor-id="using-nlme">Using {nlme}</h2>
+<p>Here is a quick example of fitting the same random-intercept model in the other common mixed-effects modeling package:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb62"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a>m_intercept_nlme <span class="ot">&lt;-</span> nlme<span class="sc">::</span><span class="fu">lme</span>(</span>
+<span id="cb62-2"><a href="#cb62-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">log</span>(beakh) <span class="sc">~</span> <span class="fu">log</span>(wingl),</span>
+<span id="cb62-3"><a href="#cb62-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">random =</span> <span class="sc">~</span> <span class="dv">1</span> <span class="sc">|</span> taxon,</span>
+<span id="cb62-4"><a href="#cb62-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> d,</span>
+<span id="cb62-5"><a href="#cb62-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">method =</span> <span class="st">"REML"</span></span>
+<span id="cb62-6"><a href="#cb62-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb62-7"><a href="#cb62-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb62-8"><a href="#cb62-8" aria-hidden="true" tabindex="-1"></a>tibble<span class="sc">::</span><span class="fu">tibble</span>(</span>
+<span id="cb62-9"><a href="#cb62-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">term =</span> <span class="fu">names</span>(lme4<span class="sc">::</span><span class="fu">fixef</span>(m_intercept)),</span>
+<span id="cb62-10"><a href="#cb62-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">lme4 =</span> <span class="fu">unname</span>(lme4<span class="sc">::</span><span class="fu">fixef</span>(m_intercept)),</span>
+<span id="cb62-11"><a href="#cb62-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">nlme =</span> <span class="fu">unname</span>(nlme<span class="sc">::</span><span class="fu">fixef</span>(m_intercept_nlme))</span>
+<span id="cb62-12"><a href="#cb62-12" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 2 × 3
+  term         lme4  nlme
+  &lt;chr&gt;       &lt;dbl&gt; &lt;dbl&gt;
+1 (Intercept) -2.61 -2.61
+2 log(wingl)   1.18  1.18</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb64"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb64-1"><a href="#cb64-1" aria-hidden="true" tabindex="-1"></a>nlme<span class="sc">::</span><span class="fu">VarCorr</span>(m_intercept_nlme)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>taxon = pdLogChol(1) 
+            Variance    StdDev    
+(Intercept) 0.050586396 0.22491420
+Residual    0.004278201 0.06540796</code></pre>
+</div>
+</div>
+<p>Let’s compare predictions from the two packages:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb66"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a>prediction_comparison <span class="ot">&lt;-</span> dplyr<span class="sc">::</span><span class="fu">bind_rows</span>(</span>
+<span id="cb66-2"><a href="#cb66-2" aria-hidden="true" tabindex="-1"></a>  tibble<span class="sc">::</span><span class="fu">tibble</span>(</span>
+<span id="cb66-3"><a href="#cb66-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">type =</span> <span class="st">"Global (or population) predictions"</span>,</span>
+<span id="cb66-4"><a href="#cb66-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">lme4 =</span> <span class="fu">predict</span>(m_intercept, <span class="at">newdata =</span> d, <span class="at">re.form =</span> <span class="cn">NA</span>),</span>
+<span id="cb66-5"><a href="#cb66-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">nlme =</span> <span class="fu">predict</span>(m_intercept_nlme, <span class="at">newdata =</span> d, <span class="at">level =</span> <span class="dv">0</span>)</span>
+<span id="cb66-6"><a href="#cb66-6" aria-hidden="true" tabindex="-1"></a>  ),</span>
+<span id="cb66-7"><a href="#cb66-7" aria-hidden="true" tabindex="-1"></a>  tibble<span class="sc">::</span><span class="fu">tibble</span>(</span>
+<span id="cb66-8"><a href="#cb66-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">type =</span> <span class="st">"Group-level predictions"</span>,</span>
+<span id="cb66-9"><a href="#cb66-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">lme4 =</span> <span class="fu">predict</span>(m_intercept, <span class="at">newdata =</span> d, <span class="at">re.form =</span> <span class="cn">NULL</span>),</span>
+<span id="cb66-10"><a href="#cb66-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">nlme =</span> <span class="fu">predict</span>(m_intercept_nlme, <span class="at">newdata =</span> d, <span class="at">level =</span> <span class="dv">1</span>)</span>
+<span id="cb66-11"><a href="#cb66-11" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb66-12"><a href="#cb66-12" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb66-13"><a href="#cb66-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb66-14"><a href="#cb66-14" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(prediction_comparison, <span class="fu">aes</span>(<span class="at">x =</span> lme4, <span class="at">y =</span> nlme)) <span class="sc">+</span></span>
+<span id="cb66-15"><a href="#cb66-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_abline</span>(<span class="at">intercept =</span> <span class="dv">0</span>, <span class="at">slope =</span> <span class="dv">1</span>, <span class="at">linetype =</span> <span class="st">"dashed"</span>, <span class="at">colour =</span> <span class="st">"grey50"</span>) <span class="sc">+</span></span>
+<span id="cb66-16"><a href="#cb66-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.4</span>, <span class="at">colour =</span> <span class="st">"#0072B2"</span>) <span class="sc">+</span></span>
+<span id="cb66-17"><a href="#cb66-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span> type) <span class="sc">+</span></span>
+<span id="cb66-18"><a href="#cb66-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_equal</span>() <span class="sc">+</span></span>
+<span id="cb66-19"><a href="#cb66-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb66-20"><a href="#cb66-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Predicted log beak height (lme4)"</span>,</span>
+<span id="cb66-21"><a href="#cb66-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Predicted log beak height (nlme)"</span></span>
+<span id="cb66-22"><a href="#cb66-22" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb66-23"><a href="#cb66-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="10-tutorial_files/figure-html/unnamed-chunk-22-1.png" class="img-fluid figure-img" width="864"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The predictions are the same for the global and group levels.</p>
+</section>
+</section>
+<section id="mixed-effect-models-with-a-random-intercept-and-slope" class="level1">
+<h1>Mixed effect models with a random intercept and slope</h1>
+<p>Let’s plot the data to remember what they looked like.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb67"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(d, <span class="fu">aes</span>(<span class="fu">log</span>(wingl), <span class="fu">log</span>(beakh), <span class="at">colour =</span> taxon)) <span class="sc">+</span></span>
+<span id="cb67-2"><a href="#cb67-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() </span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="10-tutorial_files/figure-html/unnamed-chunk-23-1.png" class="img-fluid figure-img" width="864"></p>
+</figure>
+</div>
+</div>
+</div>
+<section id="fitting-the-model-1" class="level2">
+<h2 class="anchored" data-anchor-id="fitting-the-model-1">Fitting the model</h2>
+<p>Last time we assumed that the slopes were constant across taxa. The above plot suggests that they might not be.</p>
+<p>Let’s modify the mixed-effects model we fit last time by allowing the slopes to vary. In <code>(1 + log(wingl) | taxon)</code>, <code>1</code> lets each taxon have its own intercept, and <code>log(wingl)</code> lets each taxon have its own slope. The <code>log(wingl)</code> term outside the parentheses estimates the overall slope, and the term inside gives each taxon an adjustment to that slope. This model will fit a random intercept <strong>and</strong> a random slope. You rarely fit a model with just a random slope.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb68"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true" tabindex="-1"></a>m_int <span class="ot">&lt;-</span>  <span class="fu">lmer</span>(<span class="fu">log</span>(beakh) <span class="sc">~</span> <span class="fu">log</span>(wingl) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> taxon), <span class="at">data =</span> d)</span>
+<span id="cb68-2"><a href="#cb68-2" aria-hidden="true" tabindex="-1"></a>m_slopes <span class="ot">&lt;-</span>  <span class="fu">lmer</span>(<span class="fu">log</span>(beakh) <span class="sc">~</span> <span class="fu">log</span>(wingl) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">+</span> <span class="fu">log</span>(wingl) <span class="sc">|</span> taxon), <span class="at">data =</span> d)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="interpreting-the-output-1" class="level2">
+<h2 class="anchored" data-anchor-id="interpreting-the-output-1">Interpreting the output</h2>
+<p>Let’s look at the output from those two models.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb69"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a>arm<span class="sc">::</span><span class="fu">display</span>(m_int)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>lmer(formula = log(beakh) ~ log(wingl) + (1 | taxon), data = d)
+            coef.est coef.se
+(Intercept) -2.61     0.19  
+log(wingl)   1.18     0.04  
+
+Error terms:
+ Groups   Name        Std.Dev.
+ taxon    (Intercept) 0.22    
+ Residual             0.07    
+---
+number of obs: 1434, groups: taxon, 15
+AIC = -3648.1, DIC = -3672.8
+deviance = -3664.4 </code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb71"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb71-1"><a href="#cb71-1" aria-hidden="true" tabindex="-1"></a>arm<span class="sc">::</span><span class="fu">display</span>(m_slopes)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>lmer(formula = log(beakh) ~ log(wingl) + (1 + log(wingl) | taxon), 
+    data = d)
+            coef.est coef.se
+(Intercept) -1.92     0.41  
+log(wingl)   1.01     0.11  
+
+Error terms:
+ Groups   Name        Std.Dev. Corr  
+ taxon    (Intercept) 1.14           
+          log(wingl)  0.31     -1.00 
+ Residual             0.06           
+---
+number of obs: 1434, groups: taxon, 15
+AIC = -3682, DIC = -3708.4
+deviance = -3701.2 </code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb73"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb73-1"><a href="#cb73-1" aria-hidden="true" tabindex="-1"></a><span class="fu">AIC</span>(m_int, m_slopes)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>         df       AIC
+m_int     4 -3648.073
+m_slopes  6 -3681.982</code></pre>
+</div>
+</div>
+<p>In the output for the model with random intercept and random slope, we now have a line that reads <code>log(wingl)</code>. This is the standard deviation (SD) of the random slopes, meaning that the taxon-specific slopes vary around the population-level slope of 1.01 with a SD of 0.31. This means 95% of taxon slopes will be 1.96 * SD + - 1.01 (~0.4 to 1.62; the actual range is 0.67 to 1.49, so narrower than CIs).</p>
+</section>
+<section id="plotting-the-predictions-1" class="level2">
+<h2 class="anchored" data-anchor-id="plotting-the-predictions-1">Plotting the predictions</h2>
+<p>We can make predictions just like before.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb75"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb75-1"><a href="#cb75-1" aria-hidden="true" tabindex="-1"></a>d<span class="sc">$</span>predict_int <span class="ot">&lt;-</span> <span class="fu">predict</span>(m_int)</span>
+<span id="cb75-2"><a href="#cb75-2" aria-hidden="true" tabindex="-1"></a>d<span class="sc">$</span>predict_slopes <span class="ot">&lt;-</span> <span class="fu">predict</span>(m_slopes)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>We’ll plot the random intercept predictions in <code>"grey"</code> and the random intercept and slope predictions in <code>"black"</code>.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb76"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb76-1"><a href="#cb76-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(d, <span class="fu">aes</span>(<span class="fu">log</span>(wingl), <span class="fu">log</span>(beakh), <span class="at">colour =</span> taxon, <span class="at">group =</span> taxon)) <span class="sc">+</span></span>
+<span id="cb76-2"><a href="#cb76-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.1</span>) <span class="sc">+</span></span>
+<span id="cb76-3"><a href="#cb76-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">y =</span> predict_int), <span class="at">colour =</span> <span class="st">"grey"</span>) <span class="sc">+</span></span>
+<span id="cb76-4"><a href="#cb76-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">y =</span> predict_slopes), <span class="at">colour =</span> <span class="st">"black"</span>) </span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="10-tutorial_files/figure-html/unnamed-chunk-27-1.png" class="img-fluid figure-img" width="864"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="model-diagnostics-1" class="level2">
+<h2 class="anchored" data-anchor-id="model-diagnostics-1">Model diagnostics</h2>
+<p>Let’s extract residuals, predictions, and fitted values from the model objects using the <code>broom.mixed::augment</code> functions.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb77"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb77-1"><a href="#cb77-1" aria-hidden="true" tabindex="-1"></a>aug_int <span class="ot">&lt;-</span> broom.mixed<span class="sc">::</span><span class="fu">augment</span>(m_int)</span>
+<span id="cb77-2"><a href="#cb77-2" aria-hidden="true" tabindex="-1"></a>aug_slopes <span class="ot">&lt;-</span> broom.mixed<span class="sc">::</span><span class="fu">augment</span>(m_slopes)</span>
+<span id="cb77-3"><a href="#cb77-3" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(aug_slopes)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 6 × 14
+  `log(beakh)` `log(wingl)` taxon   .fitted  .resid    .hat .cooksd .fixed   .mu
+         &lt;dbl&gt;        &lt;dbl&gt; &lt;fct&gt;     &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;
+1         2.38         4.23 Geospi…    2.49 -0.106  0.00215 2.95e-3   2.38  2.49
+2         2.33         4.17 Geospi…    2.40 -0.0712 0.00605 3.74e-3   2.32  2.40
+3         2.30         4.17 Geospi…    2.40 -0.101  0.00605 7.49e-3   2.32  2.40
+4         2.25         4.22 Geospi…    2.47 -0.215  0.00260 1.45e-2   2.36  2.47
+5         2.40         4.19 Geospi…    2.42 -0.0266 0.00453 3.90e-4   2.33  2.42
+6         2.34         4.22 Geospi…    2.47 -0.124  0.00260 4.84e-3   2.36  2.47
+# ℹ 5 more variables: .offset &lt;dbl&gt;, .sqrtXwt &lt;dbl&gt;, .sqrtrwt &lt;dbl&gt;,
+#   .weights &lt;dbl&gt;, .wtres &lt;dbl&gt;</code></pre>
+</div>
+</div>
+<p>One important model diagnostic is plotting the residuals against the fitted values. Here, “fitted” is another word for the predictions.</p>
+<p>We’ll start with the random intercepts model and plot by taxon:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb79"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb79-1"><a href="#cb79-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(aug_int, <span class="fu">aes</span>(.fitted, .resid)) <span class="sc">+</span> </span>
+<span id="cb79-2"><a href="#cb79-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.6</span>) <span class="sc">+</span> </span>
+<span id="cb79-3"><a href="#cb79-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>taxon, <span class="at">scales =</span> <span class="st">"free"</span>) <span class="sc">+</span></span>
+<span id="cb79-4"><a href="#cb79-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> <span class="dv">0</span>, <span class="at">linetype =</span> <span class="dv">2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="10-tutorial_files/figure-html/unnamed-chunk-29-1.png" class="img-fluid figure-img" width="864"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Is there anything concerning with the above plot? Hint: Look for curves or changes in spread of points.</p>
+<p>And now, the random intercepts and slopes model:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb80"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb80-1"><a href="#cb80-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(aug_slopes, <span class="fu">aes</span>(.fitted, .resid)) <span class="sc">+</span> </span>
+<span id="cb80-2"><a href="#cb80-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.6</span>) <span class="sc">+</span> </span>
+<span id="cb80-3"><a href="#cb80-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>taxon, <span class="at">scales =</span> <span class="st">"free"</span>) <span class="sc">+</span></span>
+<span id="cb80-4"><a href="#cb80-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> <span class="dv">0</span>, <span class="at">linetype =</span> <span class="dv">2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="10-tutorial_files/figure-html/unnamed-chunk-30-1.png" class="img-fluid figure-img" width="864"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>This looks a bit better. Why is that? But there are still some problems. The biggest issue, to me, is the curve that we see for <em>Geospiza fortis</em>:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb81"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb81-1"><a href="#cb81-1" aria-hidden="true" tabindex="-1"></a><span class="fu">filter</span>(aug_slopes, taxon <span class="sc">==</span> <span class="st">"Geospiza fortis"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb81-2"><a href="#cb81-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(.fitted, .resid)) <span class="sc">+</span> <span class="fu">geom_point</span>() <span class="sc">+</span> </span>
+<span id="cb81-3"><a href="#cb81-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">se =</span> <span class="cn">FALSE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="10-tutorial_files/figure-html/unnamed-chunk-31-1.png" class="img-fluid figure-img" width="864"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>How might we fix this? Hint: think back to last week!</p>
+</section>
+<section id="using-nlme-1" class="level2">
+<h2 class="anchored" data-anchor-id="using-nlme-1">Using {nlme}</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb82"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb82-1"><a href="#cb82-1" aria-hidden="true" tabindex="-1"></a>m_slopes_nlme <span class="ot">&lt;-</span> nlme<span class="sc">::</span><span class="fu">lme</span>(</span>
+<span id="cb82-2"><a href="#cb82-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">fixed =</span> <span class="fu">log</span>(beakh) <span class="sc">~</span> <span class="fu">log</span>(wingl),</span>
+<span id="cb82-3"><a href="#cb82-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">random =</span> <span class="sc">~</span> <span class="dv">1</span> <span class="sc">+</span> <span class="fu">log</span>(wingl) <span class="sc">|</span> taxon,</span>
+<span id="cb82-4"><a href="#cb82-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> d,</span>
+<span id="cb82-5"><a href="#cb82-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">method =</span> <span class="st">"REML"</span></span>
+<span id="cb82-6"><a href="#cb82-6" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+</section>
+<section id="mixed-effect-models-with-a-gam" class="level1">
+<h1>Mixed effect models with a gam()</h1>
+<p>Now let’s fit a generalized additive mixed model (GAMM). We’ll replace the overall straight line with a smooth and see how taxon-specific intercepts and slopes let each taxon shift and tilt that curve. We’ll use <code>gam()</code> and <code>gamm()</code> from <code>{mgcv}</code>. The <code>{gamm4}</code> package is another option. Here we are going to center the predictor (wing length).</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb83"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb83-1"><a href="#cb83-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ungroup data frame and make taxon a factor</span></span>
+<span id="cb83-2"><a href="#cb83-2" aria-hidden="true" tabindex="-1"></a>d_gamm <span class="ot">&lt;-</span> d <span class="sc">|&gt;</span></span>
+<span id="cb83-3"><a href="#cb83-3" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">ungroup</span>() <span class="sc">|&gt;</span></span>
+<span id="cb83-4"><a href="#cb83-4" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">mutate</span>(<span class="at">taxon =</span> <span class="fu">factor</span>(taxon)) <span class="sc">|&gt;</span></span>
+<span id="cb83-5"><a href="#cb83-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">log_wingl_centered =</span> <span class="fu">log</span>(wingl) <span class="sc">-</span> <span class="fu">mean</span>(<span class="fu">log</span>(wingl)))</span>
+<span id="cb83-6"><a href="#cb83-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb83-7"><a href="#cb83-7" aria-hidden="true" tabindex="-1"></a><span class="do">## fit a generalized additive mixed effects model (GAMM) using gam():</span></span>
+<span id="cb83-8"><a href="#cb83-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb83-9"><a href="#cb83-9" aria-hidden="true" tabindex="-1"></a><span class="co"># random intercept only</span></span>
+<span id="cb83-10"><a href="#cb83-10" aria-hidden="true" tabindex="-1"></a>m_gamm_int <span class="ot">&lt;-</span> mgcv<span class="sc">::</span><span class="fu">gam</span>(</span>
+<span id="cb83-11"><a href="#cb83-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">log</span>(beakh) <span class="sc">~</span> <span class="fu">s</span>(log_wingl_centered, <span class="at">k =</span> <span class="dv">10</span>) <span class="sc">+</span></span>
+<span id="cb83-12"><a href="#cb83-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">s</span>(taxon, <span class="at">bs =</span> <span class="st">"re"</span>),</span>
+<span id="cb83-13"><a href="#cb83-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> d_gamm,</span>
+<span id="cb83-14"><a href="#cb83-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">method =</span> <span class="st">"REML"</span></span>
+<span id="cb83-15"><a href="#cb83-15" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb83-16"><a href="#cb83-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb83-17"><a href="#cb83-17" aria-hidden="true" tabindex="-1"></a><span class="co"># random intercept and separate curve (with shared curvature) by group:</span></span>
+<span id="cb83-18"><a href="#cb83-18" aria-hidden="true" tabindex="-1"></a>m_gamm_slope <span class="ot">&lt;-</span> mgcv<span class="sc">::</span><span class="fu">gam</span>(</span>
+<span id="cb83-19"><a href="#cb83-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">log</span>(beakh) <span class="sc">~</span> <span class="fu">s</span>(log_wingl_centered, <span class="at">k =</span> <span class="dv">10</span>) <span class="sc">+</span></span>
+<span id="cb83-20"><a href="#cb83-20" aria-hidden="true" tabindex="-1"></a>    <span class="fu">s</span>(taxon, <span class="at">bs =</span> <span class="st">"re"</span>) <span class="sc">+</span></span>
+<span id="cb83-21"><a href="#cb83-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">s</span>(taxon, log_wingl_centered, <span class="at">bs =</span> <span class="st">"re"</span>),</span>
+<span id="cb83-22"><a href="#cb83-22" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> d_gamm,</span>
+<span id="cb83-23"><a href="#cb83-23" aria-hidden="true" tabindex="-1"></a>  <span class="at">method =</span> <span class="st">"REML"</span></span>
+<span id="cb83-24"><a href="#cb83-24" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb83-25"><a href="#cb83-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb83-26"><a href="#cb83-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb83-27"><a href="#cb83-27" aria-hidden="true" tabindex="-1"></a><span class="do">## fit a generalized additive mixed effects model (GAMM) using gamm():</span></span>
+<span id="cb83-28"><a href="#cb83-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb83-29"><a href="#cb83-29" aria-hidden="true" tabindex="-1"></a><span class="co"># Shared smooth with a random intercept for taxon</span></span>
+<span id="cb83-30"><a href="#cb83-30" aria-hidden="true" tabindex="-1"></a>m_gamm_pkg_int <span class="ot">&lt;-</span> mgcv<span class="sc">::</span><span class="fu">gamm</span>(</span>
+<span id="cb83-31"><a href="#cb83-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">log</span>(beakh) <span class="sc">~</span> <span class="fu">s</span>(log_wingl_centered, <span class="at">k =</span> <span class="dv">10</span>),</span>
+<span id="cb83-32"><a href="#cb83-32" aria-hidden="true" tabindex="-1"></a>  <span class="at">random =</span> <span class="fu">list</span>(<span class="at">taxon =</span> <span class="sc">~</span> <span class="dv">1</span>),</span>
+<span id="cb83-33"><a href="#cb83-33" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> d_gamm,</span>
+<span id="cb83-34"><a href="#cb83-34" aria-hidden="true" tabindex="-1"></a>  <span class="at">method =</span> <span class="st">"REML"</span></span>
+<span id="cb83-35"><a href="#cb83-35" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb83-36"><a href="#cb83-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb83-37"><a href="#cb83-37" aria-hidden="true" tabindex="-1"></a><span class="co"># Shared smooth with taxon-specific intercept and slope adjustments</span></span>
+<span id="cb83-38"><a href="#cb83-38" aria-hidden="true" tabindex="-1"></a>m_gamm_pkg_slope <span class="ot">&lt;-</span> mgcv<span class="sc">::</span><span class="fu">gamm</span>(</span>
+<span id="cb83-39"><a href="#cb83-39" aria-hidden="true" tabindex="-1"></a>  <span class="fu">log</span>(beakh) <span class="sc">~</span> <span class="fu">s</span>(log_wingl_centered, <span class="at">k =</span> <span class="dv">10</span>),</span>
+<span id="cb83-40"><a href="#cb83-40" aria-hidden="true" tabindex="-1"></a>  <span class="at">random =</span> <span class="fu">list</span>(<span class="at">taxon =</span> <span class="sc">~</span> <span class="dv">1</span> <span class="sc">+</span> log_wingl_centered),</span>
+<span id="cb83-41"><a href="#cb83-41" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> d_gamm,</span>
+<span id="cb83-42"><a href="#cb83-42" aria-hidden="true" tabindex="-1"></a>  <span class="at">method =</span> <span class="st">"REML"</span></span>
+<span id="cb83-43"><a href="#cb83-43" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>Fitting GAMMs in <code>gam()</code> and <code>gamm()</code> let each taxon shift and tilt the shared curve. In our <code>gam()</code> model, the two separate <code>bs = "re"</code> terms assume that the intercept and slope adjustments are uncorrelated. In our <code>gamm()</code> model, <code>random = list(taxon = ~ 1 + log_wingl_centered)</code> estimates that correlation. It tells us whether taxa with taller predicted beaks at the reference wing length tend to have steeper or shallower slopes at that point.</p>
+<section id="predictions" class="level2">
+<h2 class="anchored" data-anchor-id="predictions">Predictions</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb84"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb84-1"><a href="#cb84-1" aria-hidden="true" tabindex="-1"></a><span class="co"># create a prediction grid for each taxon</span></span>
+<span id="cb84-2"><a href="#cb84-2" aria-hidden="true" tabindex="-1"></a>gamm_predictions <span class="ot">&lt;-</span> d_gamm <span class="sc">|&gt;</span></span>
+<span id="cb84-3"><a href="#cb84-3" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">group_by</span>(taxon) <span class="sc">|&gt;</span></span>
+<span id="cb84-4"><a href="#cb84-4" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">reframe</span>(</span>
+<span id="cb84-5"><a href="#cb84-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">log_wingl_centered =</span> <span class="fu">seq</span>(</span>
+<span id="cb84-6"><a href="#cb84-6" aria-hidden="true" tabindex="-1"></a>      <span class="at">from =</span> <span class="fu">min</span>(log_wingl_centered),</span>
+<span id="cb84-7"><a href="#cb84-7" aria-hidden="true" tabindex="-1"></a>      <span class="at">to =</span> <span class="fu">max</span>(log_wingl_centered),</span>
+<span id="cb84-8"><a href="#cb84-8" aria-hidden="true" tabindex="-1"></a>      <span class="at">length.out =</span> <span class="dv">100</span></span>
+<span id="cb84-9"><a href="#cb84-9" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb84-10"><a href="#cb84-10" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb84-11"><a href="#cb84-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb84-12"><a href="#cb84-12" aria-hidden="true" tabindex="-1"></a><span class="co"># add the predicted beak height from both models back into gamm_predctions:</span></span>
+<span id="cb84-13"><a href="#cb84-13" aria-hidden="true" tabindex="-1"></a>gamm_predictions<span class="sc">$</span>random_intercept_mod <span class="ot">&lt;-</span> <span class="fu">predict</span>(</span>
+<span id="cb84-14"><a href="#cb84-14" aria-hidden="true" tabindex="-1"></a>  m_gamm_int, <span class="at">newdata =</span> gamm_predictions, <span class="at">type =</span> <span class="st">"response"</span></span>
+<span id="cb84-15"><a href="#cb84-15" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb84-16"><a href="#cb84-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb84-17"><a href="#cb84-17" aria-hidden="true" tabindex="-1"></a>gamm_predictions<span class="sc">$</span>random_intercept_slope_mod <span class="ot">&lt;-</span> <span class="fu">predict</span>(</span>
+<span id="cb84-18"><a href="#cb84-18" aria-hidden="true" tabindex="-1"></a>  m_gamm_slope, <span class="at">newdata =</span> gamm_predictions, <span class="at">type =</span> <span class="st">"response"</span></span>
+<span id="cb84-19"><a href="#cb84-19" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb84-20"><a href="#cb84-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb84-21"><a href="#cb84-21" aria-hidden="true" tabindex="-1"></a><span class="co"># plot</span></span>
+<span id="cb84-22"><a href="#cb84-22" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>() <span class="sc">+</span></span>
+<span id="cb84-23"><a href="#cb84-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(</span>
+<span id="cb84-24"><a href="#cb84-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> d_gamm,</span>
+<span id="cb84-25"><a href="#cb84-25" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">x =</span> log_wingl_centered, <span class="at">y =</span> <span class="fu">log</span>(beakh)),</span>
+<span id="cb84-26"><a href="#cb84-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">alpha =</span> <span class="fl">0.25</span>) <span class="sc">+</span></span>
+<span id="cb84-27"><a href="#cb84-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(</span>
+<span id="cb84-28"><a href="#cb84-28" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> gamm_predictions,</span>
+<span id="cb84-29"><a href="#cb84-29" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(log_wingl_centered, random_intercept_mod, <span class="at">colour =</span> <span class="st">"Random intercept"</span>),</span>
+<span id="cb84-30"><a href="#cb84-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">linewidth =</span> <span class="fl">0.9</span>, <span class="at">alpha =</span> <span class="fl">0.7</span>) <span class="sc">+</span></span>
+<span id="cb84-31"><a href="#cb84-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(</span>
+<span id="cb84-32"><a href="#cb84-32" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> gamm_predictions,</span>
+<span id="cb84-33"><a href="#cb84-33" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(log_wingl_centered, random_intercept_slope_mod,</span>
+<span id="cb84-34"><a href="#cb84-34" aria-hidden="true" tabindex="-1"></a>        <span class="at">colour =</span> <span class="st">"Random intercept + slope"</span>),</span>
+<span id="cb84-35"><a href="#cb84-35" aria-hidden="true" tabindex="-1"></a>    <span class="at">linewidth =</span> <span class="fl">0.9</span>, <span class="at">alpha =</span> <span class="fl">0.5</span>) <span class="sc">+</span></span>
+<span id="cb84-36"><a href="#cb84-36" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span> taxon, <span class="at">scales =</span> <span class="st">"free"</span>) <span class="sc">+</span></span>
+<span id="cb84-37"><a href="#cb84-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_colour_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(</span>
+<span id="cb84-38"><a href="#cb84-38" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Random intercept"</span> <span class="ot">=</span> <span class="st">"#0072B2"</span>,</span>
+<span id="cb84-39"><a href="#cb84-39" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Random intercept + slope"</span> <span class="ot">=</span> <span class="st">"#D55E00"</span>)) <span class="sc">+</span></span>
+<span id="cb84-40"><a href="#cb84-40" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Centered log wing length"</span>, <span class="at">y =</span> <span class="st">"Log beak height"</span>, <span class="at">colour =</span> <span class="cn">NULL</span>) <span class="sc">+</span></span>
+<span id="cb84-41"><a href="#cb84-41" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>() <span class="sc">+</span></span>
+<span id="cb84-42"><a href="#cb84-42" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"bottom"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="10-tutorial_files/figure-html/unnamed-chunk-34-1.png" class="img-fluid figure-img" width="864"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="model-diagnostics-2" class="level2">
+<h2 class="anchored" data-anchor-id="model-diagnostics-2">Model diagnostics</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb85"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb85-1"><a href="#cb85-1" aria-hidden="true" tabindex="-1"></a><span class="co"># shared smooth with taxon random intercepts</span></span>
+<span id="cb85-2"><a href="#cb85-2" aria-hidden="true" tabindex="-1"></a>gratia<span class="sc">::</span><span class="fu">appraise</span>(m_gamm_int, <span class="at">type =</span> <span class="st">"response"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="10-tutorial_files/figure-html/unnamed-chunk-35-1.png" class="img-fluid figure-img" width="864"></p>
+</figure>
+</div>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb86"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb86-1"><a href="#cb86-1" aria-hidden="true" tabindex="-1"></a><span class="co"># shared smooth with taxon random intercepts and slopes</span></span>
+<span id="cb86-2"><a href="#cb86-2" aria-hidden="true" tabindex="-1"></a>gratia<span class="sc">::</span><span class="fu">appraise</span>(m_gamm_slope, <span class="at">type =</span> <span class="st">"response"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="10-tutorial_files/figure-html/unnamed-chunk-35-2.png" class="img-fluid figure-img" width="864"></p>
+</figure>
+</div>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb87"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb87-1"><a href="#cb87-1" aria-hidden="true" tabindex="-1"></a>mgcv<span class="sc">::</span><span class="fu">k.check</span>(m_gamm_int)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                      k'      edf   k-index p-value
+s(log_wingl_centered)  9  6.44440 0.8061453       0
+s(taxon)              15 13.89859        NA      NA</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb89"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb89-1"><a href="#cb89-1" aria-hidden="true" tabindex="-1"></a>mgcv<span class="sc">::</span><span class="fu">k.check</span>(m_gamm_slope)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                            k'       edf   k-index p-value
+s(log_wingl_centered)        9  6.203801 0.8209164       0
+s(taxon)                    15 13.645116        NA      NA
+s(taxon,log_wingl_centered) 15  6.526845        NA      NA</code></pre>
+</div>
+</div>
+<p>We allowed <code>k = 10</code> in our GAMMs. Our k-index values are below that target value of 1, meaning that individuals with similar wing lengths tend to have more similar residuals than expected. This may be due to phylogenetic relatedness rather than model fit. Phylogenetic models are very advanced and we won’t go into them here. If you are curious, see <a href="https://cran.r-project.org/web/packages/brms/vignettes/brms_phylogenetics.html">the brms package vignette</a>.</p>
+<p>We also want to check the residuals vs.&nbsp;fitted of the species that had a curved pattern when fitting a linear mixed effect model:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb91"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb91-1"><a href="#cb91-1" aria-hidden="true" tabindex="-1"></a><span class="co"># m_slopes is the linear mixed model with a random intercept and slope.</span></span>
+<span id="cb91-2"><a href="#cb91-2" aria-hidden="true" tabindex="-1"></a>fortis_diagnostics <span class="ot">&lt;-</span> dplyr<span class="sc">::</span><span class="fu">bind_rows</span>(</span>
+<span id="cb91-3"><a href="#cb91-3" aria-hidden="true" tabindex="-1"></a>  tibble<span class="sc">::</span><span class="fu">tibble</span>(</span>
+<span id="cb91-4"><a href="#cb91-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">taxon =</span> <span class="fu">model.frame</span>(m_slopes)<span class="sc">$</span>taxon,</span>
+<span id="cb91-5"><a href="#cb91-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">log_wing =</span> <span class="fu">model.frame</span>(m_slopes)[[<span class="st">"log(wingl)"</span>]],</span>
+<span id="cb91-6"><a href="#cb91-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">residual =</span> <span class="fu">residuals</span>(m_slopes),</span>
+<span id="cb91-7"><a href="#cb91-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">model =</span> <span class="st">"Linear mixed model"</span></span>
+<span id="cb91-8"><a href="#cb91-8" aria-hidden="true" tabindex="-1"></a>  ),</span>
+<span id="cb91-9"><a href="#cb91-9" aria-hidden="true" tabindex="-1"></a>  tibble<span class="sc">::</span><span class="fu">tibble</span>(</span>
+<span id="cb91-10"><a href="#cb91-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">taxon =</span> <span class="fu">model.frame</span>(m_gamm_slope)<span class="sc">$</span>taxon,</span>
+<span id="cb91-11"><a href="#cb91-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">log_wing =</span> <span class="fu">model.frame</span>(m_gamm_slope)<span class="sc">$</span>log_wingl_centered <span class="sc">+</span></span>
+<span id="cb91-12"><a href="#cb91-12" aria-hidden="true" tabindex="-1"></a>      <span class="fu">mean</span>(<span class="fu">log</span>(d_gamm<span class="sc">$</span>wingl)),</span>
+<span id="cb91-13"><a href="#cb91-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">residual =</span> <span class="fu">residuals</span>(m_gamm_slope, <span class="at">type =</span> <span class="st">"response"</span>),</span>
+<span id="cb91-14"><a href="#cb91-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">model =</span> <span class="st">"GAMM with shared smooth"</span></span>
+<span id="cb91-15"><a href="#cb91-15" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb91-16"><a href="#cb91-16" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
+<span id="cb91-17"><a href="#cb91-17" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">filter</span>(taxon <span class="sc">==</span> <span class="st">"Geospiza fortis"</span>)</span>
+<span id="cb91-18"><a href="#cb91-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb91-19"><a href="#cb91-19" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(fortis_diagnostics, <span class="fu">aes</span>(log_wing, residual)) <span class="sc">+</span></span>
+<span id="cb91-20"><a href="#cb91-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> <span class="dv">0</span>, <span class="at">linetype =</span> <span class="st">"dashed"</span>) <span class="sc">+</span></span>
+<span id="cb91-21"><a href="#cb91-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.4</span>) <span class="sc">+</span></span>
+<span id="cb91-22"><a href="#cb91-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"loess"</span>, <span class="at">formula =</span> y <span class="sc">~</span> x, <span class="at">se =</span> <span class="cn">FALSE</span>) <span class="sc">+</span></span>
+<span id="cb91-23"><a href="#cb91-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span> model) <span class="sc">+</span></span>
+<span id="cb91-24"><a href="#cb91-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Log wing length"</span>, <span class="at">y =</span> <span class="st">"Residual"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="10-tutorial_files/figure-html/unnamed-chunk-36-1.png" class="img-fluid figure-img" width="864"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>This plot looks much better.</p>
+</section>
+</section>
+<section id="next-steps-1" class="level1">
+<h1>Next steps</h1>
+<p>GAMMs can be very complicated. Here, we allowed a random intercept and a shared curve with group-level deviations. There are many options and there is a nice paper by Eric Pederson, David Miller, Gavin Simpson, and Noam Ross that explains the most commonly used options (check out Figure 4).</p>
+<p>In our example, all taxa shared the same curvature. The random intercept lets each taxon shift the curve up or down, and the random slope lets each taxon tilt it. <a href="https://peerj.com/articles/6876/">Pedersen et al. (2019)</a> describe five ways to model smooths across groups:</p>
+<ul>
+<li><p><strong>G:</strong> One overall smooth shared by all groups.</p></li>
+<li><p><strong>GS:</strong> An overall smooth plus group-specific smooth deviations, with a shared smoothing penalty.</p></li>
+<li><p><strong>GI:</strong> An overall smooth plus group-specific smooth deviations, with a separate smoothing penalty for each group.</p></li>
+<li><p><strong>S:</strong> A separate smooth for each group, with a shared smoothing penalty.</p></li>
+<li><p><strong>I:</strong> A separate smooth for each group, with a separate smoothing penalty for each group.</p></li>
+</ul>
+<p>A shared penalty controls how much the curves can wiggle in the same way across groups. The curves themselves can still have different shapes.</p>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

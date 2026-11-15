@@ -1,0 +1,86 @@
+---
+title: "group-level predictors"
+format: html
+editor: visual
+---
+
+## Group-level predictors
+
+There is another, perhaps less obvious, issue with the random intercept random slope model.
+
+Before we dig into this, we're going to refit the models with a centered predictor. This just means we will subtract the mean of log(wing length) from the predictor. As we learned, doing so will make the model easier to interpret because our intercept estimates will be at `wingl` = `r round(exp(mean(log(d$wingl))), 0)`mm instead of `log(wingl)` = 0.
+
+```{r}
+d <- d |>
+	mutate(log_wingl_centered = log(wingl) - mean(log(wingl)))
+
+m_int <- lmer(log(beakh) ~ log_wingl_centered + (1 | taxon), data = d)
+
+m_slopes <- lmer(log(beakh) ~ log_wingl_centered + (1 + log_wingl_centered | taxon), data = d)
+
+d$predict_slopes <- predict(m_slopes)
+```
+
+Let's look at our model predictions overlaid with the data again:
+
+```{r}
+ggplot(d, aes(log_wingl_centered, log(beakh), colour = taxon, group = taxon)) +
+  geom_point(alpha = 0.1) +
+  geom_line(aes(y = predict_slopes), colour = "black") +
+  geom_vline(xintercept = 0, linetype = 2)
+```
+
+We now will plot the group-level intercepts over mean (log) wing length of each taxon to visualize the problem:
+
+```{r}
+# create a new dataframe that is the mean log
+taxa_dat <- group_by(d, taxon) %>% 
+  summarise(mean_log_wingl_centered = 
+      mean(log_wingl_centered)) 
+
+re_int <- 
+  coef(m_slopes)$taxon[, "(Intercept)"] 
+
+taxa_dat$intercept <- re_int
+
+ggplot(taxa_dat, aes(mean_log_wingl_centered, intercept)) + geom_point()
+```
+
+From the plot, we can see that there is a relationship between each taxon's random intercept (beak height at a given wing length) and the mean wing length of that taxon. Taxa with longer wings on average tend to have taller predicted beaks at the same wing length. By adding each taxon’s mean log wing length as a predictor, we can account for some of the differences in intercepts that the model previously attributed to random variation among taxa. This is called a group-level predictor.
+
+We first add the mean wing length by group back into the dataframe and then fit another mixed effect model that models beak height as a function of wing length, mean wing length of each group (the group-level predictor), a random intercept of wing length, and a random slope of wing length by group.
+
+```{r}
+d <- left_join(d, taxa_dat, by = "taxon")
+
+
+
+m_slopes_gr <- lmer(log(beakh) ~ log_wingl_centered + mean_log_wingl_centered +
+    					 (1 + log_wingl_centered | taxon), data = d)
+
+arm::display(m_slopes)
+
+arm::display(m_slopes_gr)
+```
+
+Take a look at the standard deviation of the random intercepts. Notice that our model with a group-level predictor has a lower random intercept standard deviation (0.15 compared to 0.23 in the first model, without the fixed effect of mean wing length by group).
+
+We have added useful information to the model to explain what was before considered "random" noise. And we have increased the partial pooling of information across groups.
+
+Let's plot the relationship between random intercepts and mean wing length again for both models:
+
+```{r}
+taxa_dat$intercept_with_group_predictor <- coef(m_slopes_gr)$taxon[,1]
+
+p1 <- ggplot(taxa_dat, aes(mean_log_wingl_centered, intercept)) + geom_point() +
+  ylim(2.1, 2.8)
+
+p2 <- ggplot(taxa_dat, 
+						 aes(mean_log_wingl_centered, intercept_with_group_predictor)) + 
+  		geom_point() + 
+	    ylim(2.1, 2.8)
+
+p1 + p2
+```
+
+We can see that the plot on the right, for the model with a group-level predictor, took care of the relationship between each group's intercept and it's mean wing length.

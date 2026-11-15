@@ -1,0 +1,859 @@
+---
+title: "Linear mixed-effects models in R"
+format:
+  html:
+    toc: true
+    toc-depth: 2
+    code-copy: true
+    fig-width: 9
+    fig-height: 6
+engine: knitr
+execute:
+  echo: true
+  warning: true
+editor: 
+  markdown: 
+    wrap: 72
+---
+
+# Mixed Effect Models in R
+
+In this tutorial, we’ll use measurements of Galápagos finches to ask how
+beak height relates to wing length. These data are available from
+[BIRDD: Beagle Investigation Return with Darwinian
+Data](http://bioquest.org/birdd/morph.php). These data are originally
+from [Sato et al. 2000 Mol. Biol.
+Evol.](http://mbe.oxfordjournals.org/content/18/3/299.full).
+
+Each row of our dataset contains measurements from one bird, and each
+taxonomic group includes observations from several individuals. We will
+start by plotting the data. We will then fit a model that asks whether
+taxonomic groups differ in expected beak height at a given wing length
+(random intercept model). We will then fit a model to ask whether beak
+height changes with wing length at different rates across groups (random
+intercept and random slope model). We’ll fit and plot both models to see
+what changes when we let the slopes vary by group.
+
+## Install and load packages, download dataset
+
+The code below will download the finch dataset from Sean Anderson's
+[glmm-course github
+repo](https://github.com/fall2026-skill-building-in-R/glmm-course) that
+has been forked (copied) to our Skill Building in R GitHub organization.
+This tutorial is based on this 2-day workshop on mixed effect models and
+has lots more information on these models (and generalized linear mixed
+effect models) if you are interested or need to use these models for
+your research.
+
+```{r}
+
+# install packages if needed
+if (!requireNamespace("pak", quietly = TRUE)) {
+  install.packages("pak")
+}
+
+pak::pak(c("dplyr", "ggplot2", "lme4", "nlme", "readr", "broom.mixed"))
+
+# load packages
+library(ggplot2)
+library(dplyr)
+library(here)
+library(readr)
+library(nlme)
+library(lme4)
+library(broom)
+library(broom.mixed)
+
+# download data from GitHub
+finch_file <- "Morph_for_Sato.csv"
+
+if (!file.exists(finch_file)) {
+  finch_url <- paste0(
+  "https://raw.githubusercontent.com/fall2026-skill-building-in-R/glmm-course/",
+  "330571394eeb595c0e05ba5b1d282b8d003f28c7/data/raw/Morph_for_Sato.csv"
+)
+  finch_file <- tempfile(fileext = ".csv")
+  download.file(finch_url, finch_file, mode = "wb", quiet = TRUE)
+}
+
+finch_raw <- read.csv(finch_file, strip.white = TRUE, na.strings = c("", "NA"))
+```
+
+If downloading the data from GitHub remote did not work, use this code:
+
+```{r}
+finch_raw <- readr::read_csv(
+  here::here("week-10", "tutorial", "Morph_for_Sato.csv")
+) # the warning here is OK
+```
+
+## Research question, variables, and grouping
+
+**Question.** How does beak height relate to wing length?
+
+One row is one morphology record. Taxon is the grouping variable, as
+site was in our eelgrass example. Birds in the same taxon share
+biological characteristics and may be more similar than birds from
+different taxa.
+
+**Response.** beak height (mm). Predictor: wing length (mm). **Grouping
+variable.** original taxon label (includes some subspecies labels).
+
+Our first step is to wrangle our dataset. We need to trim the taxon
+labels and ensure the measurements used on the log scale are positive.
+
+```{r}
+
+glimpse(finch_raw)
+
+names(finch_raw) <- tolower(names(finch_raw))
+
+finch_raw <- finch_raw |>
+  dplyr::select(islandid, taxonorig, genusl69, speciesl69, sex, wingl, beakh, ubeakl) |>
+  dplyr::rename(taxon = taxonorig, genus = genusl69, species = speciesl69)
+
+finch_raw <- data.frame(na.omit(finch_raw)) # remove all rows with any NAs to make this simple
+
+finch_raw <- dplyr::filter(finch_raw, genus == "Geospiza") |>
+	as_tibble()
+
+d <- finch_raw
+
+glimpse(d)
+```
+
+# Initial plotting
+
+The first rule of any data analysis is to plot the data. It's a common
+saying that this is also the second and third rule of data analysis.
+Never underestimate the value of plotting the data creatively.
+Occasionally, we fit statistical models in between plotting the data.
+
+We are going to look at predicting the height of birds' beaks based on
+their measured wing length. And we have measurements for a variety of
+species.
+
+```{r}
+ggplot(d, aes(wingl, beakh, colour = taxon)) + geom_point()
+```
+
+We could fit a model to these data as they are plotted here but we might
+want to consider transforming our predictor variable (wing length)
+and/or our response variable (beak height).
+
+Log transformations (using either base 10 or natural logs) are commonly
+used when variables such as wing length and beak height scale
+proportionally, when measurements are right-skewed, or when a
+relationship looks curved on the original scale. Logging compresses
+larger values more than smaller ones and can make a relationship easier
+to model with a straight line.
+
+Let's plot our data with that transformation:
+
+```{r}
+ggplot(d, aes(
+  log(wingl), log(beakh), colour = taxon)) + # exercise
+  geom_point()
+```
+
+One option would be to fit a single linear regression to these data. We
+can quickly do that from within ggplot2 (good to just visualize, won't
+give you any information other than drawing a line). Let's look at what
+that would look like:
+
+```{r}
+ggplot(d, aes(log(wingl), log(beakh))) +
+  geom_point(aes(colour = taxon)) +
+  geom_smooth(method = "lm") # method = [l]inear [m]odel
+```
+
+Notice that I moved `aes(colour = taxon)` within the function
+`geom_point`. If I do not do that, we get a separate regression line for
+each taxon, each with its own intercept and slope estimated from that
+taxon’s birds.
+
+```{r}
+ggplot(d, aes(log(wingl), log(beakh), colour = taxon)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE)
+```
+
+Neither of these approaches is probably ideal. Why is that?
+
+One line for all birds (complete pooling) assumes every taxon has the
+same expected beak height at a given wing length. That can hide real
+differences among taxa.
+
+A separate line for each taxon (no pooling) estimates each intercept and
+slope using only that taxon’s birds. For a taxon with just a few birds
+or a narrow range of wing lengths, the fitted line can be unstable.
+
+# Mixed effect model with a random intercept
+
+## Fitting the model
+
+A better approach might be to use a mixed effects model. Let's work
+through that. We are going to use the `{lme4}` package as our default
+option for fitting these types of models. Later we will explore other
+packages.
+
+Let's start from the regression syntax we already know.
+
+```{r}
+m_pooled <- lm(log(beakh) ~ log(wingl), data = d)
+coef(m_pooled)
+```
+
+Now we are going to fit a mixed effects model where we let each taxon
+have its own intercept. And we will constrain those different intercepts
+by a normal distribution so that information is partially shared across
+taxa (partial pooling).
+
+This is often referred to as a "random intercept" model.
+
+The workhorse function of the `{lme4}` package for fitting mixed effects
+models is the function `lmer()`. You can pronounce it however you like.
+Some people would say "lemur", others "ell-em-ee-are". The syntax is
+just like `lm` with the addition of a formula for the "random effects".
+
+You can find extensive details in the documentation `?lme4::lmer`.
+
+In the code below, notice the addition `+ (1 | taxon)`. The `1` refers
+to "intercept" and the `| taxon` tells the function that you want to let
+the intercept vary by the values in the `taxon` column.
+
+```{r}
+m_intercept <- lme4::lmer(
+  log(beakh) ~ log(wingl) + (1 | taxon),
+  data = d)
+
+summary(m_intercept)
+```
+
+## Interpreting the output
+
+Let's read the summary together.
+
+The summary tells us that we fit a 'Linear mixed models fit by REML' and
+that the class of the object is \['lmerMod'\]. It also reports the
+forumla we fit and the data.
+
+We then have `REML criterion at convergence: -3656.1` which is the final
+value of the criterion lmer() minimized to estimate the random-effect
+and residual variances. It has no useful standalone interpretation as a
+measure of model fit (could compare like AIC but we just use AIC).
+
+We then have `Scaled residuals:` which is just like the `lm()`.
+
+Next, we have a new section, `Random effects:`. This section tells us
+how much variation there is among groups and how much remains within
+groups. In our model, it shows how much the taxa’s fitted lines are
+shifted up or down and how much individual birds scatter around their
+own taxon’s line. You can take the square root of the variance column
+and it equals the Std. Dev. column.
+
+Here, the standard deviation (SD) of our taxon intercept = 0.225. At the
+same wing length, a taxon’s expected log beak height typically differs
+from the overall fitted line by about 0.225 log units. This describes
+how much the taxon lines shift up or down.
+
+The residual SD = 0.065. An individual bird’s log beak height typically
+differs from its own taxon’s fitted line by about 0.065 log units. This
+describes how much birds scatter around their taxon line.
+
+These results tell us that the random intercept captures substantial
+variation in expected beak height among taxa, even after accounting for
+wing length because the taxon SD and residual SD values are not close to
+zero. If the taxon intercept SD were close to zero, the model would be
+estimating very little difference among taxa at the same wing length.
+The taxon-specific lines would nearly overlap, so the random intercept
+would add little to the fitted predictions. To see if you need a random
+intercept (or both random intercept and slope) fitting a model with and
+without these random effects and comparing via AIC is the best way to
+judge.
+
+We then have our `Fixed effects:` section, which gives us the estimated
+intercept and slope for the overall fitted line. The intercept is the
+expected log beak height at the reference wing length. The slope is the
+estimated change in log beak height for a one-unit increase in log wing
+length. In this random-intercept model, all taxa share that slope.
+
+We are also told how many rows of data we have `Number of obs: 1434` and
+how many random intercept groups we have `taxon, 15`.
+
+Finally, the `Correlation of Fixed Effects:` examines the correlation
+between the slope and intercept. Our model shows a very high
+correlation. This isn't great, and if this correlation is very strong
+and our model is complicated it might result in computational problems.
+Later we will talk about ways of solving this (hint: we'll "center" the
+predictor by subtracting the mean).
+
+We can use functions in the `{lme4}` package to get the fixed and random
+effect sizes:
+
+```{r}
+
+lme4::fixef(m_intercept)
+
+intercept <- lme4::fixef(m_intercept)[["(Intercept)"]]
+exp(intercept)
+
+lme4::ranef(m_intercept) # gives the estimated random intercept adjustment for each taxon
+
+coef(m_intercept) # gives you total intercept (global/population + group-level added)
+# notice the slope is the same!
+
+```
+
+Let's make some plots of these random intercepts.
+
+```{r}
+ # row.names(.) means the row names of the data frame:
+re <- lme4::ranef(m_intercept)$taxon |>
+  tibble::rownames_to_column(var = "taxon") |>
+  dplyr::rename(intercept_adjustment = `(Intercept)`)
+
+ggplot(re, aes(x = 1, y = intercept_adjustment)) +
+  geom_point(alpha = 0.7) +
+  labs(x = NULL, y = "Taxon intercept adjustment (log units)")
+```
+
+What is the mean of these random intercepts?
+
+```{r}
+round(mean(lme4::ranef(m_intercept)$taxon[, 1]), 2)
+```
+
+The mean is 0 because the random intercepts are adjustments around the
+overall intercept. The overall intercept sets the baseline, and each
+taxon’s adjustment shifts its line up or down from there.
+
+There are a lot of details in the output from `summary.merMod` and
+usually a lot more decimal places than are reasonable.
+
+A useful alternative is the function `arm::display` which focuses on the
+important pieces.
+
+```{r}
+arm::display(m_intercept)
+```
+
+I tend not to load the package arm, and instead call its functions
+directly (e.g. `arm::display`) because the package loads many other
+functions and packages that we don't need.
+
+## Plotting the predictions
+
+Let's look at what we just did. We'll start by plotting the predictions.
+To do that, we'll use the `predict` function. Because we are applying it
+to an object of class `merMod` (meaning it was created by the `lmer`
+function), we can get details on that function at `?predict.merMod`.
+
+```{r}
+d$predict_lmer <- predict(m_intercept)
+```
+
+Now let's plot those predictions:
+
+```{r}
+ggplot(d, aes(log(wingl), log(beakh), colour = taxon)) +
+  geom_point(alpha = 0.1) + # alpha = 0.1 make 10% opaque
+  geom_line(aes(y = predict_lmer))
+```
+
+What do you notice about the intercepts? What do you notice about the
+slopes? How does this compare to the previous 2 models we fit?
+
+There is another kind of prediction we can make with a mixed effects
+model. We can make a prediction at the "global" or "population" level.
+This is our expectation if we sampled a new taxon of unknown identity.
+With the lme4 package, we can do that by adding the argument
+`re.form = NA` to the `predict` function:
+
+```{r}
+d$predict_lmer_population <- predict(m_intercept, re.form = NA)
+```
+
+Let's add the population prediction to the plot in black with a thicker
+line:
+
+```{r}
+ggplot(d, aes(log(wingl), log(beakh), colour = taxon)) +
+  geom_point(alpha = 0.1) +
+  geom_line(aes(y = predict_lmer)) +
+  geom_line(aes(y = predict_lmer_population), colour = "black", linewidth = 1) 
+```
+
+## Model diagnostics
+
+Let's inspect the model.
+
+We can use the following code like we did with linear models, but it
+only gives us the residual vs. fitted plots:
+
+```{r}
+plot(m_intercept)
+```
+
+Let's dive deeper:
+
+First, let’s look for patterns in the residuals and check whether their
+spread changes. We will plot the residuals against **fitted log beak
+height** to check whether their spread changes across predicted values.
+Then we’ll plot the residuals against **log wing length** to see whether
+the model systematically overpredicts or underpredicts beak height at
+certain wing lengths.
+
+Each point is one bird. Its residual is its observed log beak height
+minus the value predicted by its taxon’s fitted line. In both plots,
+look for points scattered around zero with roughly constant vertical
+spread. A curve suggests a pattern the model missed, while a fan shape
+suggests changing residual variance.
+
+```{r}
+finch_diagnostics <- data.frame(
+  fitted = fitted(m_intercept),
+  residual = residuals(m_intercept),
+  log_wing = model.frame(m_intercept)[["log(wingl)"]]
+)
+
+ggplot(finch_diagnostics, aes(x = fitted, y = residual)) +
+  geom_point(alpha = 0.4) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(x = "Fitted log beak height", y = "Residual")
+
+ggplot(finch_diagnostics, aes(x = log_wing, y = residual)) +
+  geom_point(alpha = 0.4) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(x = "Log wing length", y = "Residual")
+```
+
+In both plots, the residuals are mostly scattered around zero, with no
+obvious overall curve. That suggests the model isn’t consistently
+overpredicting or underpredicting beak height across the range of fitted
+values or wing lengths.
+
+The spread looks somewhat wider in the middle, especially around fitted
+log beak heights of 2.4–2.6. There are also more birds in that range, so
+I’d describe this as a possible difference in residual spread.
+
+Now, let's inspect the q-q plot:
+
+```{r}
+ggplot(finch_diagnostics, aes(sample = residual)) +
+  stat_qq() +
+  stat_qq_line()
+```
+
+Most birds’ residuals follow the line fairly closely, so the normal
+distribution describes the middle of the residual distribution
+reasonably well. At the ends, some birds’ beak heights are farther from
+their predicted values than we’d expect under the model’s normality
+assumption.
+
+## Next steps
+
+What may want to consider a few things:
+
+So far, we’ve given each taxon its own intercept and used the same slope
+for all taxa. We can also let the slope vary so that the relationship
+between wing length and beak height can be steeper in some taxa than in
+others.
+
+One option is a fixed-effect interaction (taxon \* log(wingl)), which
+estimates each taxon’s slope using only its own observations. Another is
+a random-slope model (log(wingl) + (1 + log(wingl) \| taxon)), which
+uses partial pooling. Taxa with less information about their slopes tend
+to have estimates closer to the overall slope. The choice depends on
+your research question and how much information you have to estimate a
+separate slope for each taxon.
+
+Both approaches let the relationship between wing length and beak height
+differ among taxa. The choice is how you want to estimate those
+differences.
+
+- Fixed-effect interaction (taxon \* log(wingl)) makes sense when your
+  question is about specific taxa and you have enough birds across a
+  useful range of wing lengths in each taxon. For example, “How much
+  steeper is the slope for G. fortis than for G. scandens?” Each taxon’s
+  slope is estimated from its own observations.
+
+- Random slopes (log(wingl) + (1 + log(wingl) \| taxon)) make sense when
+  you want to estimate the overall slope and how much slopes vary among
+  taxa. The model also gives each taxon its own slope estimate. Through
+  partial pooling, a taxon with only a few birds or a narrow range of
+  wing lengths generally gets an estimate closer to the overall slope.
+  If you have taxa with few data points, you'd want to consider fitting
+  random intercepts and slopes to help estimate the effect sizes for
+  data-poor taxa.
+
+We might also want to try centering the predictor to reduce correlation
+between the intercept and slope and make the intercept more
+interpretable.
+
+## Using {nlme}
+
+Here is a quick example of fitting the same random-intercept model in
+the other common mixed-effects modeling package:
+
+```{r}
+m_intercept_nlme <- nlme::lme(
+  log(beakh) ~ log(wingl),
+  random = ~ 1 | taxon,
+  data = d,
+  method = "REML"
+)
+
+tibble::tibble(
+  term = names(lme4::fixef(m_intercept)),
+  lme4 = unname(lme4::fixef(m_intercept)),
+  nlme = unname(nlme::fixef(m_intercept_nlme))
+)
+
+nlme::VarCorr(m_intercept_nlme)
+```
+
+Let's compare predictions from the two packages:
+
+```{r}
+prediction_comparison <- dplyr::bind_rows(
+  tibble::tibble(
+    type = "Global (or population) predictions",
+    lme4 = predict(m_intercept, newdata = d, re.form = NA),
+    nlme = predict(m_intercept_nlme, newdata = d, level = 0)
+  ),
+  tibble::tibble(
+    type = "Group-level predictions",
+    lme4 = predict(m_intercept, newdata = d, re.form = NULL),
+    nlme = predict(m_intercept_nlme, newdata = d, level = 1)
+  )
+)
+
+ggplot(prediction_comparison, aes(x = lme4, y = nlme)) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed", colour = "grey50") +
+  geom_point(alpha = 0.4, colour = "#0072B2") +
+  facet_wrap(~ type) +
+  coord_equal() +
+  labs(
+    x = "Predicted log beak height (lme4)",
+    y = "Predicted log beak height (nlme)"
+  ) +
+  theme_bw()
+```
+
+The predictions are the same for the global and group levels.
+
+# Mixed effect models with a random intercept and slope
+
+Let's plot the data to remember what they looked like.
+
+```{r}
+ggplot(d, aes(log(wingl), log(beakh), colour = taxon)) +
+  geom_point() 
+```
+
+## Fitting the model
+
+Last time we assumed that the slopes were constant across taxa. The
+above plot suggests that they might not be.
+
+Let's modify the mixed-effects model we fit last time by allowing the
+slopes to vary. In `(1 + log(wingl) | taxon)`, `1` lets each taxon have
+its own intercept, and `log(wingl)` lets each taxon have its own slope.
+The `log(wingl)` term outside the parentheses estimates the overall
+slope, and the term inside gives each taxon an adjustment to that slope.
+This model will fit a random intercept **and** a random slope. You
+rarely fit a model with just a random slope.
+
+```{r, message=FALSE}
+m_int <-  lmer(log(beakh) ~ log(wingl) + (1 | taxon), data = d)
+m_slopes <-  lmer(log(beakh) ~ log(wingl) + (1 + log(wingl) | taxon), data = d)
+```
+
+## Interpreting the output
+
+Let's look at the output from those two models.
+
+```{r}
+arm::display(m_int)
+arm::display(m_slopes)
+
+AIC(m_int, m_slopes)
+```
+
+In the output for the model with random intercept and random slope, we
+now have a line that reads `log(wingl)`. This is the standard deviation
+(SD) of the random slopes, meaning that the taxon-specific slopes vary
+around the population-level slope of 1.01 with a SD of 0.31. This means
+95% of taxon slopes will be 1.96 \* SD + - 1.01 (\~0.4 to 1.62; the
+actual range is 0.67 to 1.49, so narrower than CIs).
+
+## Plotting the predictions
+
+We can make predictions just like before.
+
+```{r}
+d$predict_int <- predict(m_int)
+d$predict_slopes <- predict(m_slopes)
+```
+
+We'll plot the random intercept predictions in `"grey"` and the random
+intercept and slope predictions in `"black"`.
+
+```{r}
+ggplot(d, aes(log(wingl), log(beakh), colour = taxon, group = taxon)) +
+  geom_point(alpha = 0.1) +
+  geom_line(aes(y = predict_int), colour = "grey") +
+  geom_line(aes(y = predict_slopes), colour = "black") 
+```
+
+## Model diagnostics
+
+Let's extract residuals, predictions, and fitted values from the model
+objects using the `broom.mixed::augment` functions.
+
+```{r}
+aug_int <- broom.mixed::augment(m_int)
+aug_slopes <- broom.mixed::augment(m_slopes)
+head(aug_slopes)
+```
+
+One important model diagnostic is plotting the residuals against the
+fitted values. Here, "fitted" is another word for the predictions.
+
+We'll start with the random intercepts model and plot by taxon:
+
+```{r, warning=FALSE, message=FALSE}
+ggplot(aug_int, aes(.fitted, .resid)) + 
+  geom_point(alpha = 0.6) + 
+  facet_wrap(~taxon, scales = "free") +
+  geom_hline(yintercept = 0, linetype = 2)
+```
+
+Is there anything concerning with the above plot? Hint: Look for curves
+or changes in spread of points.
+
+And now, the random intercepts and slopes model:
+
+```{r, warning=FALSE, message=FALSE}
+ggplot(aug_slopes, aes(.fitted, .resid)) + 
+  geom_point(alpha = 0.6) + 
+  facet_wrap(~taxon, scales = "free") +
+  geom_hline(yintercept = 0, linetype = 2)
+```
+
+This looks a bit better. Why is that? But there are still some problems.
+The biggest issue, to me, is the curve that we see for *Geospiza
+fortis*:
+
+```{r, warning=FALSE, message=FALSE}
+filter(aug_slopes, taxon == "Geospiza fortis") %>%
+  ggplot(aes(.fitted, .resid)) + geom_point() + 
+  geom_smooth(se = FALSE)
+```
+
+How might we fix this? Hint: think back to last week!
+
+## Using {nlme}
+
+```{r}
+m_slopes_nlme <- nlme::lme(
+  fixed = log(beakh) ~ log(wingl),
+  random = ~ 1 + log(wingl) | taxon,
+  data = d,
+  method = "REML"
+)
+```
+
+# Mixed effect models with a gam()
+
+Now let’s fit a generalized additive mixed model (GAMM). We’ll replace
+the overall straight line with a smooth and see how taxon-specific
+intercepts and slopes let each taxon shift and tilt that curve. We’ll
+use `gam()` and `gamm()` from `{mgcv}`. The `{gamm4}` package is another
+option. Here we are going to center the predictor (wing length).
+
+```{r}
+# ungroup data frame and make taxon a factor
+d_gamm <- d |>
+  dplyr::ungroup() |>
+  dplyr::mutate(taxon = factor(taxon)) |>
+	mutate(log_wingl_centered = log(wingl) - mean(log(wingl)))
+
+## fit a generalized additive mixed effects model (GAMM) using gam():
+
+# random intercept only
+m_gamm_int <- mgcv::gam(
+  log(beakh) ~ s(log_wingl_centered, k = 10) +
+    s(taxon, bs = "re"),
+  data = d_gamm,
+  method = "REML"
+)
+
+# random intercept and separate curve (with shared curvature) by group:
+m_gamm_slope <- mgcv::gam(
+  log(beakh) ~ s(log_wingl_centered, k = 10) +
+    s(taxon, bs = "re") +
+    s(taxon, log_wingl_centered, bs = "re"),
+  data = d_gamm,
+  method = "REML"
+)
+
+
+## fit a generalized additive mixed effects model (GAMM) using gamm():
+
+# Shared smooth with a random intercept for taxon
+m_gamm_pkg_int <- mgcv::gamm(
+  log(beakh) ~ s(log_wingl_centered, k = 10),
+  random = list(taxon = ~ 1),
+  data = d_gamm,
+  method = "REML"
+)
+
+# Shared smooth with taxon-specific intercept and slope adjustments
+m_gamm_pkg_slope <- mgcv::gamm(
+  log(beakh) ~ s(log_wingl_centered, k = 10),
+  random = list(taxon = ~ 1 + log_wingl_centered),
+  data = d_gamm,
+  method = "REML"
+)
+```
+
+Fitting GAMMs in `gam()` and `gamm()` let each taxon shift and tilt the
+shared curve. In our `gam()` model, the two separate `bs = "re"` terms
+assume that the intercept and slope adjustments are uncorrelated. In our
+`gamm()` model, `random = list(taxon = ~ 1 + log_wingl_centered)`
+estimates that correlation. It tells us whether taxa with taller
+predicted beaks at the reference wing length tend to have steeper or
+shallower slopes at that point.
+
+## Predictions
+
+```{r}
+# create a prediction grid for each taxon
+gamm_predictions <- d_gamm |>
+  dplyr::group_by(taxon) |>
+  dplyr::reframe(
+    log_wingl_centered = seq(
+      from = min(log_wingl_centered),
+      to = max(log_wingl_centered),
+      length.out = 100
+    )
+  )
+
+# add the predicted beak height from both models back into gamm_predctions:
+gamm_predictions$random_intercept_mod <- predict(
+  m_gamm_int, newdata = gamm_predictions, type = "response"
+)
+
+gamm_predictions$random_intercept_slope_mod <- predict(
+  m_gamm_slope, newdata = gamm_predictions, type = "response"
+)
+
+# plot
+ggplot() +
+  geom_point(
+    data = d_gamm,
+    aes(x = log_wingl_centered, y = log(beakh)),
+    alpha = 0.25) +
+  geom_line(
+    data = gamm_predictions,
+    aes(log_wingl_centered, random_intercept_mod, colour = "Random intercept"),
+    linewidth = 0.9, alpha = 0.7) +
+  geom_line(
+    data = gamm_predictions,
+    aes(log_wingl_centered, random_intercept_slope_mod,
+        colour = "Random intercept + slope"),
+    linewidth = 0.9, alpha = 0.5) +
+  facet_wrap(~ taxon, scales = "free") +
+  scale_colour_manual(values = c(
+    "Random intercept" = "#0072B2",
+    "Random intercept + slope" = "#D55E00")) +
+  labs(x = "Centered log wing length", y = "Log beak height", colour = NULL) +
+  theme_bw() +
+  theme(legend.position = "bottom")
+```
+
+## Model diagnostics
+
+```{r}
+# shared smooth with taxon random intercepts
+gratia::appraise(m_gamm_int, type = "response")
+
+# shared smooth with taxon random intercepts and slopes
+gratia::appraise(m_gamm_slope, type = "response")
+
+mgcv::k.check(m_gamm_int)
+mgcv::k.check(m_gamm_slope)
+```
+
+We allowed `k = 10` in our GAMMs. Our k-index values are below that
+target value of 1, meaning that individuals with similar wing lengths
+tend to have more similar residuals than expected. This may be due to
+phylogenetic relatedness rather than model fit. Phylogenetic models are
+very advanced and we won't go into them here. If you are curious, see
+[the brms package
+vignette](https://cran.r-project.org/web/packages/brms/vignettes/brms_phylogenetics.html).
+
+We also want to check the residuals vs. fitted of the species that had a
+curved pattern when fitting a linear mixed effect model:
+
+```{r}
+# m_slopes is the linear mixed model with a random intercept and slope.
+fortis_diagnostics <- dplyr::bind_rows(
+  tibble::tibble(
+    taxon = model.frame(m_slopes)$taxon,
+    log_wing = model.frame(m_slopes)[["log(wingl)"]],
+    residual = residuals(m_slopes),
+    model = "Linear mixed model"
+  ),
+  tibble::tibble(
+    taxon = model.frame(m_gamm_slope)$taxon,
+    log_wing = model.frame(m_gamm_slope)$log_wingl_centered +
+      mean(log(d_gamm$wingl)),
+    residual = residuals(m_gamm_slope, type = "response"),
+    model = "GAMM with shared smooth"
+  )
+) |>
+  dplyr::filter(taxon == "Geospiza fortis")
+
+ggplot(fortis_diagnostics, aes(log_wing, residual)) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  geom_point(alpha = 0.4) +
+  geom_smooth(method = "loess", formula = y ~ x, se = FALSE) +
+  facet_wrap(~ model) +
+  labs(x = "Log wing length", y = "Residual")
+```
+
+This plot looks much better.
+
+# Next steps
+
+GAMMs can be very complicated. Here, we allowed a random intercept and a
+shared curve with group-level deviations. There are many options and
+there is a nice paper by Eric Pederson, David Miller, Gavin Simpson, and
+Noam Ross that explains the most commonly used options (check out Figure
+4).
+
+In our example, all taxa shared the same curvature. The random intercept
+lets each taxon shift the curve up or down, and the random slope lets
+each taxon tilt it. [Pedersen et al.
+(2019)](https://peerj.com/articles/6876/) describe five ways to model
+smooths across groups:
+
+- **G:** One overall smooth shared by all groups.
+
+- **GS:** An overall smooth plus group-specific smooth deviations, with
+  a shared smoothing penalty.
+
+- **GI:** An overall smooth plus group-specific smooth deviations, with
+  a separate smoothing penalty for each group.
+
+- **S:** A separate smooth for each group, with a shared smoothing
+  penalty.
+
+- **I:** A separate smooth for each group, with a separate smoothing
+  penalty for each group.
+
+A shared penalty controls how much the curves can wiggle in the same way
+across groups. The curves themselves can still have different shapes.
